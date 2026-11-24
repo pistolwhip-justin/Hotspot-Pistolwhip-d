@@ -1,8 +1,6 @@
 name: Build and release Hotspot Pistolwhip'd 0.1.0
 
 on:
-  push:
-    branches: [phase-1-foundation]
   workflow_dispatch:
 
 permissions:
@@ -22,6 +20,14 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      - name: Refuse to overwrite an existing versioned release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view v0.1.0 --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            echo "v0.1.0 already exists. Published releases are immutable; create a new versioned workflow."
+            exit 1
+          fi
       - name: Install Gradle and generate wrapper
         run: |
           sudo apt-get update

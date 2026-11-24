@@ -1,6 +1,8 @@
 # Development plan
 
 ## Phase 1 — clean-room foundation and local-link prototype
+
+**Status: CI build and unit tests passed; v0.1.0 test APK published. Physical two-device acceptance remains pending.**
 Deliver app shell, true-black Material 3 UI, independent Share/Receive toggles, foreground lifecycle, multi-client SOCKS5 listener, receiver Wi-Fi gateway discovery/endpoint probe, initial Quick Settings tiles and build/release automation.
 
 Gate: CI build and automated tests pass; APK is published on a versioned GitHub Release and attached in chat; user can test UI/service/link behavior. Full internet tunneling is explicitly outside this gate.

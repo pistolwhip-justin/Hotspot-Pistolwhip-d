@@ -5,6 +5,12 @@
 - Run JVM unit tests.
 - Assemble a debug APK from committed source.
 
+## CI result — 2026-11-24
+- `testDebugUnitTest`: passed.
+- `assembleDebug`: passed.
+- APK published as v0.1.0 and its SHA-256 matches the release asset metadata.
+- No physical-device install or runtime tests have been performed.
+
 ## Phase 1 manual checks (required on two physical Android phones)
 1. Install the APK on both devices.
 2. Confirm app label in installer, Settings > Apps, launcher and app drawer.

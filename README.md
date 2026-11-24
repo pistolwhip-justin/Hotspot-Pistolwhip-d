@@ -24,6 +24,15 @@ This is a new implementation. No source code, binaries, assets, package names or
 - [Development plan](docs/DEVELOPMENT_PLAN.md)
 - [Decision record](docs/DECISIONS.md)
 
+## 📦 Latest test APK
+
+**v0.1.0 — Phase 1 prototype**
+
+- [Download APK](https://github.com/pistolwhip-justin/Hotspot-Pistolwhip-d/releases/download/v0.1.0/Hotspot-Pistolwhipd-v0.1.0-debug.apk)
+- [GitHub Release notes](https://github.com/pistolwhip-justin/Hotspot-Pistolwhip-d/releases/tag/v0.1.0)
+
+Debug-signed sideload build. This is a local-link prototype, not a complete internet tunnel.
+
 ## 🧪 Build
 Requires JDK 17 and Android SDK API 35. The GitHub Actions workflow creates the Gradle wrapper and runs unit tests plus the Android debug build.
 
