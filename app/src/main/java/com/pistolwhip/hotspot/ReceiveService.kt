@@ -6,6 +6,7 @@ import android.content.Intent
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import android.os.IBinder
 import java.net.InetAddress
 import java.net.InetSocketAddress
@@ -26,8 +27,8 @@ class ReceiveService : Service() {
         if (intent?.action == ACTION_STOP) { stopSelf(); return START_NOT_STICKY }
         startForeground(12, Notifications.build(this, "Receiving link", "Checking hotspot connection"))
         val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        try { cm.registerDefaultNetworkCallback(callback) } catch (_: Exception) { }
-        currentNetwork = cm.activeNetwork
+        try { cm.registerNetworkCallback(NetworkRequest.Builder().addTransportType(NetworkCapabilities.TRANSPORT_WIFI).build(), callback) } catch (_: Exception) { }
+        currentNetwork = cm.allNetworks.firstOrNull { cm.getNetworkCapabilities(it)?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true }
         scheduleCheck()
         return START_STICKY
     }
