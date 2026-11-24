@@ -1,0 +1,82 @@
+name: Build and release Hotspot Pistolwhip'd 0.1.1
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-0.1.1
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install Gradle and generate wrapper
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gradle
+          gradle wrapper --gradle-version 8.9
+      - name: Build and test
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon testDebugUnitTest assembleDebug
+      - name: Name APK
+        run: cp app/build/outputs/apk/debug/app-debug.apk Hotspot-Pistolwhipd-v0.1.1-debug.apk
+      - name: Preserve APK as a build artifact for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: Hotspot-Pistolwhipd-v0.1.1-debug
+          path: Hotspot-Pistolwhipd-v0.1.1-debug.apk
+          retention-days: 14
+
+  release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Refuse to overwrite an existing versioned release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view v0.1.1 --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            echo "v0.1.1 already exists. Published releases are immutable; investigate rather than overwrite."
+            exit 1
+          fi
+      - uses: actions/download-artifact@v4
+        with:
+          name: Hotspot-Pistolwhipd-v0.1.1-debug
+      - name: Publish immutable test release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v0.1.1
+          target_commitish: ${{ github.sha }}
+          name: Hotspot Pistolwhip'd v0.1.1 — Phase 1.1 Interaction Polish
+          prerelease: true
+          fail_on_unmatched_files: true
+          files: Hotspot-Pistolwhipd-v0.1.1-debug.apk
+          make_latest: false
+          body: |
+            Phase 1.1 interaction polish.
+            - Quick Settings tile taps toggle only their respective service and do not open or foreground the app.
+            - Long-pressing either tile opens the app through its tile settings activity.
+            - Tapping the persistent service notification opens the app.
+            - App switches refresh from persisted state when the app resumes.
+            - AI features remain deferred; this is a focused networking test build.
+            Debug-signed sideload build; not a production or Play Store release.
+            Full-device VPN forwarding is not included.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
