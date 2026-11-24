@@ -6,7 +6,6 @@ import android.content.Intent
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
-import android.net.RouteInfo
 import android.os.IBinder
 import java.net.InetAddress
 import java.net.InetSocketAddress
@@ -43,7 +42,7 @@ class ReceiveService : Service() {
             update(false, "Waiting for Wi-Fi connection"); return
         }
         val props = cm.getLinkProperties(network)
-        val gateway = props?.routes?.firstOrNull { it.destination.isDefaultRoute }?.gateway
+        val gateway = props?.routes?.firstOrNull { it.isDefaultRoute }?.gateway
             ?: run { update(false, "Could not identify Wi-Fi gateway"); return }
         val reachable = try {
             Socket().use { it.connect(InetSocketAddress(gateway, ShareService.PORT), 2500); true }
