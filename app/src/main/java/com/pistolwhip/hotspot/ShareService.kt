@@ -42,7 +42,7 @@ class ShareService : Service() {
         }
     }
 
-    private fun handleClient(client: Socket) {
+    private fun readExact(input: java.io.InputStream, length: Int): ByteArray {\n        val bytes = ByteArray(length)\n        var offset = 0\n        while (offset < length) {\n            val count = input.read(bytes, offset, length - offset)\n            if (count < 0) throw java.io.EOFException()\n            offset += count\n        }\n        return bytes\n    }\n\n    private fun readFully(input: java.io.InputStream, bytes: ByteArray): Boolean = try {\n        var offset = 0\n        while (offset < bytes.size) {\n            val count = input.read(bytes, offset, bytes.size - offset)\n            if (count < 0) return false\n            offset += count\n        }\n        true\n    } catch (_: Exception) { false }\n\n    private fun handleClient(client: Socket) {
         client.use { s ->
             s.soTimeout = 15_000
             val input = BufferedInputStream(s.getInputStream())
@@ -52,18 +52,18 @@ class ShareService : Service() {
                 val methods = input.read()
                 if (version != 5 || methods < 1) return
                 val offered = ByteArray(methods)
-                if (input.read(offered) != methods || 0 !in offered) return
+                if (!readFully(input, offered) || 0.toByte() !in offered) return
                 output.write(byteArrayOf(5, 0)); output.flush()
 
                 val header = ByteArray(4)
                 if (input.read(header) != 4 || header[0].toInt() != 5 || header[1].toInt() != 1) return
                 val host = when (header[3].toInt() and 0xff) {
-                    1 -> input.readNBytes(4).joinToString(".") { (it.toInt() and 255).toString() }
-                    3 -> { val len = input.read(); String(input.readNBytes(len)) }
-                    4 -> input.readNBytes(16).joinToString(":") { "%02x".format(it) }
+                    1 -> readExact(input, 4).joinToString(".") { (it.toInt() and 255).toString() }
+                    3 -> { val len = input.read(); String(readExact(input, len)) }
+                    4 -> readExact(input, 16).joinToString(":") { "%02x".format(it) }
                     else -> return
                 }
-                val portBytes = input.readNBytes(2)
+                val portBytes = readExact(input, 2)
                 if (portBytes.size != 2) return
                 val port = ((portBytes[0].toInt() and 255) shl 8) or (portBytes[1].toInt() and 255)
                 try {
