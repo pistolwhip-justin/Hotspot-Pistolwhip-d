@@ -54,14 +54,15 @@ private fun HotspotTheme(content: @Composable () -> Unit) {
 
 @Composable
 private fun Dashboard(initialShare: Boolean, initialReceive: Boolean, onShare: (Boolean) -> Unit, onReceive: (Boolean) -> Unit, onWifiSettings: () -> Unit) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     var sharing by remember { mutableStateOf(initialShare) }
     var receiving by remember { mutableStateOf(initialReceive) }
 
     // Quick Settings tile actions do not bring this Activity forward. Refresh the displayed
     // switches only when the user independently returns to the app.
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
-        sharing = State.share(androidx.compose.ui.platform.LocalContext.current)
-        receiving = State.receive(androidx.compose.ui.platform.LocalContext.current)
+        sharing = State.share(context)
+        receiving = State.receive(context)
     }
 
     Surface(Modifier.fillMaxSize(), color = Color.Black) {
