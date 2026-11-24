@@ -53,15 +53,17 @@ class ShareService : Service() {
         return bytes
     }
 
-    private fun readFully(input: java.io.InputStream, bytes: ByteArray): Boolean = try {
-        var offset = 0
-        while (offset < bytes.size) {
-            val count = input.read(bytes, offset, bytes.size - offset)
-            if (count < 0) return false
-            offset += count
-        }
-        true
-    } catch (_: Exception) { false }
+    private fun readFully(input: java.io.InputStream, bytes: ByteArray): Boolean {
+        return try {
+            var offset = 0
+            while (offset < bytes.size) {
+                val count = input.read(bytes, offset, bytes.size - offset)
+                if (count < 0) return false
+                offset += count
+            }
+            true
+        } catch (_: Exception) { false }
+    }
 
     private fun handleClient(client: Socket) {
         client.use { s ->
