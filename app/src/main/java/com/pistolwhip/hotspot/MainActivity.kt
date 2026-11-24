@@ -18,18 +18,26 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (Build.VERSION.SDK_INT >= 33) requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 41)
-        setContent { HotspotTheme { Dashboard(
-            initialShare = State.share(this), initialReceive = State.receive(this),
-            onShare = { enabled -> serviceToggle(ShareService::class.java, ShareService.ACTION_STOP, enabled) },
-            onReceive = { enabled -> serviceToggle(ReceiveService::class.java, ReceiveService.ACTION_STOP, enabled) },
-            onWifiSettings = { startActivity(Intent(Settings.ACTION_WIFI_SETTINGS)) }
-        ) } }
+        setContent {
+            HotspotTheme {
+                Dashboard(
+                    initialShare = State.share(this),
+                    initialReceive = State.receive(this),
+                    onShare = { enabled -> serviceToggle(ShareService::class.java, ShareService.ACTION_STOP, enabled) },
+                    onReceive = { enabled -> serviceToggle(ReceiveService::class.java, ReceiveService.ACTION_STOP, enabled) },
+                    onWifiSettings = { startActivity(Intent(Settings.ACTION_WIFI_SETTINGS)) }
+                )
+            }
+        }
     }
+
     private fun serviceToggle(cls: Class<*>, stopAction: String, enabled: Boolean) {
         val intent = Intent(this, cls).apply { if (!enabled) action = stopAction }
         if (Build.VERSION.SDK_INT >= 26 && enabled) startForegroundService(intent) else startService(intent)
@@ -48,6 +56,14 @@ private fun HotspotTheme(content: @Composable () -> Unit) {
 private fun Dashboard(initialShare: Boolean, initialReceive: Boolean, onShare: (Boolean) -> Unit, onReceive: (Boolean) -> Unit, onWifiSettings: () -> Unit) {
     var sharing by remember { mutableStateOf(initialShare) }
     var receiving by remember { mutableStateOf(initialReceive) }
+
+    // Quick Settings tile actions do not bring this Activity forward. Refresh the displayed
+    // switches only when the user independently returns to the app.
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        sharing = State.share(androidx.compose.ui.platform.LocalContext.current)
+        receiving = State.receive(androidx.compose.ui.platform.LocalContext.current)
+    }
+
     Surface(Modifier.fillMaxSize(), color = Color.Black) {
         Column(Modifier.fillMaxSize().padding(horizontal = 22.dp, vertical = 28.dp), verticalArrangement = Arrangement.spacedBy(22.dp)) {
             Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {

@@ -9,11 +9,16 @@
 6. If Wi-Fi is off, use supported Android system prompts/settings and show an error if rejected or unsuccessful.
 7. Interface: true black AMOLED, Roboto/system typography, Material 3 dynamic accents, Samsung/One UI-inspired layout.
 8. First Receive activation is manual; future auto-start is opt-in.
-9. Active status notification remains. Receiver green status requires verified endpoint and upstream reachability; inactive is red.
+9. Active service notification remains. Receiver green status requires verified endpoint and upstream reachability; inactive is red.
 10. Unexpected Android service termination should prompt restart where reliably detectable.
-11. Separate Quick Settings tiles for Share and Receive; long-press should open app settings/interface where Android supports it.
-12. New clean-room implementation; no prior source, binaries, assets, names or proprietary branding.
-13. AI integration is a deferred marketing concept, not a core dependency.
+11. Separate Quick Settings tiles for Share and Receive.
+12. Tile tap toggles only its corresponding service; it must not launch or foreground the app UI.
+13. Long-pressing either Quick Settings tile opens the app through Android's tile settings-activity behavior.
+14. Tapping the persistent service notification opens the app.
+15. Tapping the separate status indicator does nothing.
+16. When the user opens/returns to the app, switches reflect the latest persisted service states.
+17. New clean-room implementation; no prior source, binaries, assets, names or proprietary branding.
+18. AI integration is deferred and is not a dependency of mass testing.
 
 ## Phase 1 gate
 - App installs and launches with derivative identity.

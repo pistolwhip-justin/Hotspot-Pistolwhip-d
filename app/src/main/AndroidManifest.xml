@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -11,7 +12,10 @@
         android:label="Hotspot Pistolwhip'd"
         android:theme="@android:style/Theme.Material.NoActionBar"
         android:usesCleartextTraffic="false">
-        <activity android:name=".MainActivity" android:exported="true">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -19,10 +23,22 @@
         </activity>
         <service android:name=".ShareService" android:exported="false" android:foregroundServiceType="dataSync" />
         <service android:name=".ReceiveService" android:exported="false" android:foregroundServiceType="dataSync" />
-        <service android:name=".ShareTileService" android:label="Share" android:icon="@android:drawable/ic_menu_share" android:permission="android.permission.BIND_QUICK_SETTINGS_TILE" android:exported="true">
+        <service
+            android:name=".ShareTileService"
+            android:label="Share"
+            android:icon="@android:drawable/ic_menu_share"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
+            android:exported="true"
+            android:settingsActivity="com.pistolwhip.hotspot.MainActivity">
             <intent-filter><action android:name="android.service.quicksettings.action.QS_TILE" /></intent-filter>
         </service>
-        <service android:name=".ReceiveTileService" android:label="Receive" android:icon="@android:drawable/ic_menu_view" android:permission="android.permission.BIND_QUICK_SETTINGS_TILE" android:exported="true">
+        <service
+            android:name=".ReceiveTileService"
+            android:label="Receive"
+            android:icon="@android:drawable/ic_menu_view"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
+            android:exported="true"
+            android:settingsActivity="com.pistolwhip.hotspot.MainActivity">
             <intent-filter><action android:name="android.service.quicksettings.action.QS_TILE" /></intent-filter>
         </service>
     </application>
