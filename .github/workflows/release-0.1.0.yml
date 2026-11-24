@@ -48,8 +48,11 @@ jobs:
           prerelease: true
           fail_on_unmatched_files: true
           files: Hotspot-Pistolwhipd-v0.1.0-debug.apk
+          make_latest: false
           body: |
             Phase 1 clean-room prototype.
             Includes independent Share/Receive controls, a multi-client SOCKS5 listener and receiver-side Wi-Fi gateway/endpoint health check.
             **Not a complete internet tunnel:** VPN packet forwarding is deferred to Phase 2.
             Debug-signed sideload build; not a production or Play Store release.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
