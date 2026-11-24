@@ -42,7 +42,28 @@ class ShareService : Service() {
         }
     }
 
-    private fun readExact(input: java.io.InputStream, length: Int): ByteArray {\n        val bytes = ByteArray(length)\n        var offset = 0\n        while (offset < length) {\n            val count = input.read(bytes, offset, length - offset)\n            if (count < 0) throw java.io.EOFException()\n            offset += count\n        }\n        return bytes\n    }\n\n    private fun readFully(input: java.io.InputStream, bytes: ByteArray): Boolean = try {\n        var offset = 0\n        while (offset < bytes.size) {\n            val count = input.read(bytes, offset, bytes.size - offset)\n            if (count < 0) return false\n            offset += count\n        }\n        true\n    } catch (_: Exception) { false }\n\n    private fun handleClient(client: Socket) {
+    private fun readExact(input: java.io.InputStream, length: Int): ByteArray {
+        val bytes = ByteArray(length)
+        var offset = 0
+        while (offset < length) {
+            val count = input.read(bytes, offset, length - offset)
+            if (count < 0) throw java.io.EOFException()
+            offset += count
+        }
+        return bytes
+    }
+
+    private fun readFully(input: java.io.InputStream, bytes: ByteArray): Boolean = try {
+        var offset = 0
+        while (offset < bytes.size) {
+            val count = input.read(bytes, offset, bytes.size - offset)
+            if (count < 0) return false
+            offset += count
+        }
+        true
+    } catch (_: Exception) { false }
+
+    private fun handleClient(client: Socket) {
         client.use { s ->
             s.soTimeout = 15_000
             val input = BufferedInputStream(s.getInputStream())
