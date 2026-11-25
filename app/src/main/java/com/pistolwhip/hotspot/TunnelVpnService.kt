@@ -81,6 +81,7 @@ class TunnelVpnService : VpnService() {
 
             tunnelStarted = TProxyService.TProxyStartService(config.absolutePath, descriptor.fd)
             if (!tunnelStarted || !TProxyService.TProxyIsRunning()) throw IllegalStateException("Native TCP/UDP tunnel did not start")
+            State.setTunnel(this, true)
             (getSystemService(NOTIFICATION_SERVICE) as android.app.NotificationManager)
                 .notify(NOTIFICATION_ID, Notifications.build(this, "Receive VPN", "Device traffic is routed through the sharing phone"))
         } catch (error: Throwable) {
@@ -94,6 +95,7 @@ class TunnelVpnService : VpnService() {
     private fun stopTunnel() {
         try { if (tunnelStarted) TProxyService.TProxyStopService() } catch (_: Throwable) { }
         tunnelStarted = false
+        State.setTunnel(this, false)
         try { tun?.close() } catch (_: Exception) { }
         tun = null
     }
