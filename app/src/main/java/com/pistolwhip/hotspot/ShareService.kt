@@ -10,6 +10,7 @@ import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
 import java.net.InetSocketAddress
+import java.net.NetworkInterface
 import java.net.ServerSocket
 import java.net.Socket
 import java.net.SocketTimeoutException
@@ -80,6 +81,9 @@ class ShareService : Service() {
 
     private fun handleClient(client: Socket) {
         client.use { s ->
+            // The wildcard listener is restricted to peers on the same interface subnet
+            // as the destination address, preventing access from unrelated interfaces.
+            if (!isSameInterfaceSubnet(s.localAddress, s.inetAddress)) return
             s.soTimeout = 15_000
             val input = BufferedInputStream(s.getInputStream())
             val output = BufferedOutputStream(s.getOutputStream())
@@ -103,6 +107,32 @@ class ShareService : Service() {
             } catch (_: Exception) {
                 // A client closing or sending a malformed frame ends only its session.
             }
+        }
+    }
+
+    private fun isSameInterfaceSubnet(local: InetAddress, peer: InetAddress): Boolean {
+        val localBytes = local.address
+        val peerBytes = peer.address
+        if (localBytes.size != peerBytes.size) return false
+        return try {
+            val networkInterface = NetworkInterface.getByInetAddress(local) ?: return false
+            val interfaceAddress = networkInterface.interfaceAddresses.firstOrNull {
+                it.address.address.contentEquals(localBytes)
+            } ?: return false
+            val prefix = interfaceAddress.networkPrefixLength.toInt()
+            if (prefix <= 0 || prefix > localBytes.size * 8) return false
+            val wholeBytes = prefix / 8
+            val remainingBits = prefix % 8
+            for (index in 0 until wholeBytes) {
+                if (localBytes[index] != peerBytes[index]) return false
+            }
+            if (remainingBits > 0) {
+                val mask = (0xff shl (8 - remainingBits)) and 0xff
+                if ((localBytes[wholeBytes].toInt() and mask) != (peerBytes[wholeBytes].toInt() and mask)) return false
+            }
+            true
+        } catch (_: Exception) {
+            false
         }
     }
 
