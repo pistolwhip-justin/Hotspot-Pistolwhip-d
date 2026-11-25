@@ -181,6 +181,7 @@ class ReceiveService : Service() {
     }
 
     private fun update(healthy: Boolean, message: String) {
+        State.setReceiveHealthy(this, healthy)
         (getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager)
             .notify(12, Notifications.build(this, "Receiving link", message, healthy))
     }
@@ -193,6 +194,7 @@ class ReceiveService : Service() {
         monitoring = false
         executor.shutdownNow()
         State.setReceive(this, false)
+        State.setReceiveHealthy(this, false)
         stopForeground(STOP_FOREGROUND_REMOVE)
         super.onDestroy()
     }
