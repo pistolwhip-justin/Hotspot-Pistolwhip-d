@@ -17,7 +17,7 @@
 14. Tapping the persistent service notification opens the app.
 15. Tapping the separate status indicator does nothing.
 16. When the user opens/returns to the app, switches reflect the latest persisted service states.
-17. New clean-room implementation; no prior source, binaries, assets, names or proprietary branding.
+17. Project source, assets, package identifiers and branding are owned by Pistol Whip Productions or explicitly supplied by it.
 18. AI integration is deferred and is not a dependency of mass testing.
 
 ## Phase 1 gate
