@@ -1,80 +1,67 @@
 # Development plan
 
-## Phase 1 — local-link prototype
+Development proceeds through readiness-gated phases. The v0.1.x and v0.2.0 releases are historical prototypes and do not satisfy the current Wi-Fi Direct product specification.
 
-**Status: v0.1.0 published.** The initial app shell, independent controls, foreground lifecycle, multi-client SOCKS5 TCP listener, receiver Wi-Fi gateway discovery and endpoint probe were delivered. Physical acceptance is tracked separately from CI.
+## Phase 1 — Wi-Fi Direct Share foundation
 
-## Phase 1.1 — interaction polish and initial user testing
+- Add runtime permission handling for Wi-Fi Direct on supported Android versions.
+- Create a Wi-Fi Direct group using the required SSID `DIRECT-WHIP-[phonename]`.
+- Generate and retain the session passphrase securely in memory/state only as needed.
+- Start the SOCKS5 listener only after successful group creation and bind/verify it on the P2P interface.
+- Implement explicit state reporting for service, group and listener.
+- Expand the Share UI only after actual group creation.
+- Add automated tests for SSID normalization, password policy and state transitions.
+- Update README, requirements, architecture, decisions and test plan.
 
-**Status: v0.1.1 published; APK tested and feedback received.**
+**Gate:** CI build/tests pass; on a physical device, Share creates a visible P2P group with the required SSID, Android conventional Hotspot remains off, and a second device can associate with the group.
 
-- Quick Settings tile taps toggle only their matching service and do not open or foreground the Activity.
-- Long-pressing either tile opens the app through its tile settings activity.
-- Tapping the persistent service notification opens the app.
-- App switches refresh from persisted service state when the app resumes.
-- UI feedback is incorporated into the Phase 2 branch: app-name heading, shared app-mark tile icons, tighter margins, larger switch/text separation, smaller system-scaled typography and a scrollable screen.
-- AI remains outside the mass-testing implementation and critical path.
+## Phase 2 — Receive discovery and connection handoff
 
-## Phase 2 — device-wide VPN tunnel
+- Enable Wi-Fi through the device's available app permission/capability; use a system handoff when unavailable.
+- Wait ten seconds before reading the active SSID.
+- Detect the expected `DIRECT-WHIP-` prefix and validate the connected network.
+- Add QR and manual credential entry.
+- Present an in-app Wi-Fi configuration UI matching Android's visual conventions and pass the user's selection/action to Android's supported Wi-Fi association API.
+- Observe Android-managed saved-network reconnection rather than duplicating saved-network management.
+- Add connection state, callbacks and failure handling.
 
-**Status: v0.2.0 test APK published; CI build and automated tests passed; physical acceptance pending.**
+**Gate:** two physical devices can connect by QR and manual entry; an already saved group can reconnect through Android; no false connected state is shown.
 
-Implementation scope:
+## Phase 3 — VPN-gated tunnel integration
 
-- Add Android VpnService consent and receiver-side TUN lifecycle.
-- Bind the VPN's underlying network to the Wi-Fi network connected to the Share phone.
-- Use HevSocks5Tunnel 2.20.0 (MIT) as a pinned native TUN-to-SOCKS5 engine. Download its Android ABI libraries during build and verify their SHA-256 checksums.
-- Add SOCKS5 UDP ASSOCIATE support to the Share service alongside TCP CONNECT.
-- Route IPv4, IPv6 and DNS traffic from the receiver through the Share endpoint.
-- Exclude the app's own package from its VPN so the proxy transport does not recurse into TUN.
-- Keep service health red until the SOCKS upstream probe succeeds and the native tunnel reports running.
-- Handle VPN consent denial, Wi-Fi disconnect, endpoint failure, native startup failure and explicit stop.
-- Add unit tests for SOCKS5 UDP frame parsing/encoding.
-- Update README, architecture, requirements, decision record, test plan and versioned release workflow.
+- Retain the existing native TUN-to-SOCKS5 engine where compatible.
+- Establish Android VpnService only after expected Wi-Fi Direct association and endpoint verification.
+- Start native tunnel only after VPN establishment.
+- Track VPN interface, native engine and traffic probe separately.
+- Ensure failure/disconnect clears healthy status and stops dependent components.
 
-**Automated readiness gate:**
-1. CI fetches and verifies each pinned native ABI library.
-2. Kotlin/Java compilation succeeds.
-3. SOCKS5 UDP codec unit tests and the existing test suite pass.
-4. Debug APK assembles from committed source.
-5. Release workflow publishes the exact APK from the source commit under a new immutable versioned tag.
+**Gate:** physical receiver traffic passes through the sharing phone; TCP, UDP and DNS verified; IPv6 tested where supported.
 
-**Physical acceptance gate:**
-1. Install on two real Android phones.
-2. Join the Share phone's normal Wi-Fi hotspot from the Receive phone.
-3. Approve Android VPN permission and activate Receive.
-4. Verify web/TCP traffic, DNS resolution and UDP-dependent traffic through the Share phone.
-5. Verify IPv6 when supported, multiple receiver sessions, Wi-Fi loss/reconnect, Share stop/restart and VPN stop.
-6. Record any Samsung/One UI-specific behavior separately from CI.
+## Phase 4 — Share presentation and diagnostics
 
-A CI APK is a test build, not proof of the physical acceptance gate. The project must not claim that a full internet tunnel works until the two-device traffic tests pass.
+- Compact verbose-style wireless information modeled on the user's supplied Wi-Fi diagnostics screenshot.
+- Refresh visible statistics every five seconds and use Android network callbacks.
+- QR generation, copy action and Android Sharesheet with SSID/passphrase only.
+- Keep Share collapsed when off and auto-expand after successful group/listener creation.
 
-## Phase 3 — automation and resilient lifecycle
+**Gate:** credentials share correctly through QR and compatible Sharesheet destinations; diagnostic values match Android-reported network state.
 
-- Opt-in auto-receive for previously approved networks.
-- Explicit first-time confirmation and permission-aware behavior.
-- Android-stop restart notification/action where the platform reliably exposes the event.
-- Wi-Fi enable UX and verified health state.
+## Phase 5 — resilience and final UX
 
-Gate: device tests cover radio state, network switch, OS service kill, user stop, reboot and permission denial.
+- Three best-effort service restart attempts ten seconds apart.
+- After repeated failure, ask whether to share logs; redact credentials and identifiers.
+- Cancel, Share & Discard, and Share & Save actions.
+- Best-effort recovery within Android foreground/background restrictions.
+- Final Samsung/One UI, battery, accessibility and physical-device regression checks.
 
-## Phase 4 — One UI polish and distribution readiness
+**Gate:** all consent, privacy, recovery and regression checks pass; final release is published from the exact source commit and verified.
 
-- Accessibility and responsive-layout review.
-- Samsung device compatibility matrix.
-- Performance, battery and background-execution work.
-- Final original Pistol Whip Productions identity/assets and distribution metadata.
+## Existing foundation
 
-Gate: target-device acceptance, accessibility review and reproducible release.
+- Standalone Kotlin/Android project and AMOLED Compose UI.
+- Independent Share/Receive controls and Quick Settings tiles.
+- Multi-client SOCKS5 TCP/UDP server implementation.
+- Receiver VpnService and HevSocks5Tunnel 2.20.0 integration from the earlier prototype; physical forwarding was not accepted.
+- v0.1.x and v0.2.0 releases remain historical reference points only.
 
-## Future AI concepts — deferred, not approved or implemented
-
-AI remains outside the current mass-testing scope. Each concept requires separate approval, requirements review and privacy/security assessment.
-
-- **Network Intelligence:** interpret locally collected latency, packet-loss, throughput and stability measurements without inspecting traffic payloads.
-- **Network Map / Radar:** visualize locally discovered devices, link state and connection quality.
-- **Network Automation:** translate user-defined rules into transparent, reviewable local automations.
-- **Voice troubleshooting assistant:** optional conversational interface for network diagnostics.
-- **Performance recommendations:** explain battery, signal and throughput trade-offs using local measurements.
-
-No remote AI service, external model dependency, traffic inspection, browsing-history collection or credential collection is part of the approved scope.
+No phase is considered complete based only on code being committed or CI passing. Physical-device gates remain explicit.
