@@ -28,7 +28,13 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (Build.VERSION.SDK_INT >= 33) requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 41)
+        val requested = mutableListOf(Manifest.permission.POST_NOTIFICATIONS)
+        if (Build.VERSION.SDK_INT >= 33) {
+            requested += Manifest.permission.NEARBY_WIFI_DEVICES
+        } else {
+            requested += Manifest.permission.ACCESS_FINE_LOCATION
+        }
+        requestPermissions(requested.toTypedArray(), 41)
         setContent {
             HotspotTheme {
                 Dashboard(
