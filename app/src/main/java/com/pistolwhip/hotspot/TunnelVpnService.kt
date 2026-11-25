@@ -141,7 +141,6 @@ class TunnelVpnService : VpnService() {
                 .setAction(ACTION_START)
                 .putExtra(EXTRA_GATEWAY, gateway)
                 .putExtra(EXTRA_NETWORK, network)
-                .putExtra(EXTRA_NETWORK, network)
             if (Build.VERSION.SDK_INT >= 26) context.startForegroundService(intent) else context.startService(intent)
         }
     }
