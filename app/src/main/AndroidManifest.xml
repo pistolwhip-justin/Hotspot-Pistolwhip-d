@@ -29,7 +29,6 @@
 
         <service
             android:name=".TunnelVpnService"
-            android:process=":vpn"
             android:exported="true"
             android:permission="android.permission.BIND_VPN_SERVICE"
             android:foregroundServiceType="specialUse">
