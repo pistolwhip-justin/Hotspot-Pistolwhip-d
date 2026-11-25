@@ -43,7 +43,9 @@
 - Wi-Fi loss, upstream failure, native startup failure and user stop produce a red/unhealthy state and stop the local tunnel as appropriate.
 - README, architecture, decision record and test plan describe actual delivered behavior.
 
-**Phase 2 readiness gate:** automated tests and CI APK build pass, then two physical devices demonstrate that receiving-phone app traffic reaches the internet through the sharing phone over TCP and UDP, with DNS verified. IPv6 is tested when supported by the hotspot/upstream. CI success alone is not the end-to-end acceptance gate.
+**Phase 2 status:** implemented in v0.2.0. CI compilation, unit tests, native ABI checksum verification and APK assembly passed. Physical two-device acceptance remains pending.
+
+**Phase 2 readiness gate:** two physical devices must demonstrate that receiving-phone app traffic reaches the internet through the sharing phone over TCP and UDP, with DNS verified. IPv6 is tested when supported by the hotspot/upstream. CI success alone is not the end-to-end acceptance gate.
 
 ## Deferred
 
