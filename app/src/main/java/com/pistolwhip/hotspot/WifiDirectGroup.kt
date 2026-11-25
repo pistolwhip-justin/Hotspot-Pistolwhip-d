@@ -26,7 +26,7 @@ class WifiDirectGroup(private val context: Context) {
         val deviceName = runCatching {
             Settings.Global.getString(context.contentResolver, "device_name")
         }.getOrNull().orEmpty().ifBlank { Build.MODEL.orEmpty() }
-        val safeName = deviceName.replace(Regex("[^A-Za-z0-9_-]"), "").ifBlank { "Android" }.take(18)
+        val safeName = deviceName.replace(Regex("[^A-Za-z0-9_-]"), "").ifBlank { "Android" }.take(17)
         val ssid = "DIRECT-WHIP-IP-$safeName"
         val passphrase = generatePassphrase()
         val config = try {
