@@ -52,7 +52,7 @@ Requires JDK 17, Android SDK API 35 and Gradle 8.9. The native libraries are pin
 
 ~~~bash
 bash scripts/fetch-native-libs.sh
-gradle wrapper --gradle-version 8.9
+gradle wrapper --gradle-version 8.9 --gradle-distribution-sha256-sum=d725d707bfabd4dfdc958c624003b3c80accc03f7037b5122c4b1d0ef15cecab
 ./gradlew --no-daemon testDebugUnitTest assembleDebug
 ~~~
 
