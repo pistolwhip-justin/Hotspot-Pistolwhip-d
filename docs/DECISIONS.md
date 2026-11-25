@@ -35,3 +35,34 @@
 - Decision: Do not implement AI, network copilot, remote model calls, or AI-dependent features during the mass-testing foundation. Record possible concepts only in the future-phase backlog.
 - Rationale: Prioritize a small, dependable networking product and get a test build into users' hands.
 - Status: Accepted.
+
+
+## D-007 — Native TUN-to-SOCKS5 engine
+
+- Date: 2026-11-25
+- Decision: Use HevSocks5Tunnel 2.20.0 (MIT) for receiver-side TUN packet conversion. Pin the upstream release and SHA-256 verify each Android ABI library during local/CI dependency preparation.
+- Rationale: A maintained native tun2socks engine provides established TCP, UDP, IPv4 and IPv6 packet handling. Implementing a complete userspace TCP/IP stack in the app would materially increase correctness and maintenance risk.
+- Boundaries: The Android VpnService, lifecycle, SOCKS endpoint and application integration remain project-owned. Preserve the upstream MIT notice.
+- Status: Accepted for Phase 2; CI and physical validation pending.
+
+## D-008 — Standard SOCKS5 UDP ASSOCIATE
+
+- Date: 2026-11-25
+- Decision: Extend the Share endpoint with RFC 1928 UDP ASSOCIATE alongside TCP CONNECT.
+- Rationale: The receiver tunnel must carry UDP, including DNS and UDP-dependent application traffic, without relying on a separate relay service.
+- Boundaries: UDP associations are tied to their TCP control connection and pinned to the requesting receiver address. The no-auth endpoint remains limited to the private hotspot LAN.
+- Status: Implemented in the Phase 2 branch; tests and device validation pending.
+
+## D-009 — Verified Receive health
+
+- Date: 2026-11-25
+- Decision: Receive health remains red until an upstream SOCKS5 TCP CONNECT probe succeeds and the native tunnel reports running. Share health becomes green only after its listener binds.
+- Rationale: A service toggle or reachable TCP port alone is not evidence that the device-wide tunnel is active.
+- Status: Implemented in the Phase 2 branch; runtime validation pending.
+
+## D-010 — No unapproved kill switch
+
+- Date: 2026-11-25
+- Decision: Do not add Android lockdown/kill-switch behavior in this phase. Document that normal routing may resume if the VPN service exits.
+- Rationale: A kill switch changes network availability and failure semantics and requires a separate explicit requirements and device-testing decision.
+- Status: Accepted; limitation documented.
