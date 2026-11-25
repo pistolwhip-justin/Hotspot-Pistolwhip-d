@@ -32,6 +32,8 @@ class ShareService : Service() {
         try {
             ServerSocket(PORT, 50).use { socket ->
                 server = socket
+                State.setShare(this, true)
+                State.setShareHealthy(this, true)
                 while (running.get()) {
                     val client = socket.accept()
                     clients.execute { handleClient(client) }
@@ -43,6 +45,7 @@ class ShareService : Service() {
             server = null
             running.set(false)
             State.setShare(this, false)
+            State.setShareHealthy(this, false)
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
         }
@@ -189,6 +192,7 @@ class ShareService : Service() {
         running.set(false)
         try { server?.close() } catch (_: Exception) { }
         State.setShare(this, false)
+        State.setShareHealthy(this, false)
         clients.shutdownNow()
         super.onDestroy()
     }
