@@ -115,15 +115,17 @@ class ShareService : Service() {
     }
 
     private fun handleConnect(s: Socket, input: java.io.InputStream, output: java.io.OutputStream, atyp: Int) {
+        s.soTimeout = 0
         val host = readTarget(input, atyp) ?: run { writeReply(output, 8, null, 0); return }
         val port = readPort(input)
         try {
             Socket().use { remote ->
                 remote.connect(InetSocketAddress(host, port), 12_000)
                 writeReply(output, 0, remote.localAddress, remote.localPort)
-                val upstream = Thread { try { s.getInputStream().copyTo(remote.getOutputStream()) } catch (_: Exception) { } }
+                val upstream = Thread { try { input.copyTo(remote.getOutputStream()) } catch (_: Exception) { } }
+                upstream.isDaemon = true
                 upstream.start()
-                try { remote.getInputStream().copyTo(s.getOutputStream()) } catch (_: Exception) { }
+                try { remote.getInputStream().copyTo(output); output.flush() } catch (_: Exception) { }
                 try { upstream.join(1000) } catch (_: InterruptedException) { Thread.currentThread().interrupt() }
             }
         } catch (_: Exception) {
@@ -136,6 +138,7 @@ class ShareService : Service() {
      * client packets are accepted only from the TCP control peer's IP address.
      */
     private fun handleUdpAssociate(s: Socket, input: java.io.InputStream, output: java.io.OutputStream) {
+        s.soTimeout = 0
         DatagramSocket(0).use { relay ->
             relay.soTimeout = 1000
             writeReply(output, 0, s.localAddress, relay.localPort)
