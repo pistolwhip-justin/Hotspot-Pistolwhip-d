@@ -1,39 +1,62 @@
 # Test and validation plan
 
 ## Automated checks
-- Compile all Android Kotlin sources.
+
+- Compile all Android Kotlin and Java sources.
 - Run JVM unit tests.
+- Verify the pinned native library checksums for arm64-v8a, armeabi-v7a, x86 and x86_64.
 - Assemble a debug APK from committed source.
+- Verify that the expected APK is published from the exact commit named by its release tag.
 
-## CI result — 2026-11-24
-- `testDebugUnitTest`: passed for v0.1.0.
-- `assembleDebug`: passed for v0.1.0.
-- APK published as v0.1.0 and its SHA-256 matches the release asset metadata.
-- No physical-device install or runtime tests have been performed.
+## Existing release and feedback
 
-## Phase 1.1 interaction checks
-1. Install the new APK over v0.1.0 and confirm the app identity remains the same.
-2. Add both Share and Receive tiles to Quick Settings.
-3. Tap Share while the app is closed; verify Share starts and the app does not open.
-4. Tap Share again; verify Share stops and the app does not open.
-5. Repeat for Receive.
-6. With either role active, long-press its tile and verify Android opens the app.
-7. Tap the persistent service notification and verify the app opens.
-8. Return to the app after toggling a service from Quick Settings; verify its switch reflects the latest state.
-9. Stop either role from inside the app; verify the Activity remains open and the other role is unaffected.
-10. Verify the status indicator has no tap action, if/when that indicator is implemented.
+- v0.1.0: CI unit tests and debug assembly passed; APK published.
+- v0.1.1: interaction-polish APK published. User tested the APK and supplied follow-up feedback, which is being incorporated into the Phase 2 implementation.
+- No claim is made that Phase 2 has passed CI or physical-device testing until the relevant results are recorded below.
 
-## Phase 2 two-device checks
-1. Install on two physical Android phones.
-2. Start Share on phone A and join its hotspot normally from phone B.
-3. Start Receive on phone B.
-4. Connect at least two receiver clients and verify independent SOCKS5 sessions.
-5. Verify the current phase's explicitly supported traffic behavior and document failures.
+## Phase 2 unit tests
 
-## Not validated by current CI
-- Samsung-specific long-press presentation and Quick Settings behavior.
-- Notification tap behavior on physical One UI devices.
-- Full device-wide routing through the sharing phone.
-- TCP/UDP packet forwarding through Android VpnService.
-- OS-kill restart prompt and auto-receive behavior.
-- Samsung Wi-Fi/hotspot control behavior.
+- SOCKS5 UDP decoder accepts IPv4 destination headers.
+- SOCKS5 UDP decoder accepts domain-name destination headers.
+- SOCKS5 UDP encoder emits IPv6 source-address headers and preserves port/payload.
+- Malformed and fragmented UDP frames are rejected.
+- Existing SOCKS5 server port test remains passing.
+
+## Phase 2 physical two-device acceptance
+
+Use two Android phones on the same test build.
+
+1. Install the Phase 2 APK on both phones.
+2. On phone A, enable the normal Android Wi-Fi hotspot and activate Share.
+3. On phone B, join phone A's hotspot through Android Wi-Fi settings.
+4. Activate Receive and approve Android's VPN consent dialog.
+5. Verify the Receive VPN notification reports a running tunnel and the Receive indicator turns green only after endpoint/upstream and native-engine checks pass.
+6. Open multiple websites and apps on phone B; confirm TCP traffic works.
+7. Verify DNS resolution from ordinary apps on phone B.
+8. Verify UDP-dependent traffic (for example, QUIC/HTTP3 where available) and repeat with a UDP diagnostic test.
+9. Verify IPv6 when the hotspot and upstream connection offer IPv6; confirm no unintended IPv6 bypass.
+10. Keep multiple receiver devices connected and verify independent TCP sessions and UDP associations.
+11. Stop Share; confirm Receive reports unhealthy and the tunnel stops or reports the unavailable endpoint.
+12. Restore Share and Wi-Fi; verify the receiver can recover after reconnect.
+13. Stop Receive; verify the VPN is removed and the app remains open.
+14. Deny VPN consent and confirm the app reports that Receive cannot start without consent.
+15. Repeat with screen off/background operation and record Samsung/One UI restrictions, battery use and service stability.
+
+## Failure and privacy checks
+
+- Wi-Fi loss stops the tunnel and clears the healthy status.
+- An unavailable SOCKS endpoint or failed upstream CONNECT probe keeps the indicator red.
+- Native tunnel startup failure does not show a green status.
+- Stopping either role does not stop the other role or close the Activity.
+- No traffic payload, browsing history or credentials are written to logs or uploaded.
+- The app does not silently enable Wi-Fi or modify hotspot DHCP leases.
+- No kill-switch/lockdown behavior is currently implemented; if the VPN service exits, Android may restore the device's normal network route. This limitation must remain explicit.
+
+## CI and device results
+
+- Phase 2 workflow: pending execution.
+- Phase 2 automated unit tests: pending execution.
+- Phase 2 native library checksum validation: pending execution.
+- Phase 2 APK assembly and release: pending execution.
+- Physical two-device TCP/UDP/DNS routing: not yet verified.
+- Physical Samsung/One UI background, Quick Settings and notification behavior: not yet verified.
