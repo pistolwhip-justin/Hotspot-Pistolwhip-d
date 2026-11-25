@@ -4,59 +4,73 @@
 
 - Compile all Android Kotlin and Java sources.
 - Run JVM unit tests.
-- Verify the pinned native library checksums for arm64-v8a, armeabi-v7a, x86 and x86_64.
+- Test SSID normalization and the `DIRECT-WHIP-` prefix.
+- Test passphrase length and character composition.
+- Test layered service/group/listener/association/VPN/tunnel state transitions.
+- Verify pinned native library checksums for all supported Android ABIs.
 - Assemble a debug APK from committed source.
-- Verify that the expected APK is published from the exact commit named by its release tag.
+- Verify release tag points to the exact source commit and release contains the expected APK.
 
-## Existing release and feedback
+## Historical releases
 
-- v0.1.0: CI unit tests and debug assembly passed; APK published.
-- v0.1.1: interaction-polish APK published. User tested the APK and supplied follow-up feedback, which is being incorporated into the Phase 2 implementation.
-- No claim is made that Phase 2 has passed CI or physical-device testing until the relevant results are recorded below.
+- v0.1.x and v0.2.0 were built around the earlier conventional-hotspot design.
+- v0.2.0 does not create the required Wi-Fi Direct group and must not be treated as a current-architecture test build.
+- Earlier conventional-hotspot test instructions are superseded.
 
-## Phase 2 unit tests
+## Phase 1 — Wi-Fi Direct Share physical acceptance
 
-- SOCKS5 UDP decoder accepts IPv4 destination headers.
-- SOCKS5 UDP decoder accepts domain-name destination headers.
-- SOCKS5 UDP encoder emits IPv6 source-address headers and preserves port/payload.
-- Malformed and fragmented UDP frames are rejected.
-- Existing SOCKS5 server port test remains passing.
+1. Install the same build on two physical Android phones.
+2. Confirm Android's conventional Hotspot setting is off on the Share phone.
+3. Enable Share.
+4. Confirm Android reports a created Wi-Fi Direct group.
+5. Confirm the actual SSID begins `DIRECT-WHIP-` and includes the normalized `IP-[phonename]` suffix.
+6. Confirm passphrase is 18–20 characters, includes uppercase/lowercase, at least five digits and at least five allowed special characters.
+7. Confirm the group is visible to the second device and it can associate.
+8. Confirm SOCKS5 listener is bound to the P2P interface and accepts only expected P2P peers.
+9. Confirm failed group creation never shows a fake active/healthy Share state.
+10. Confirm Share expands only after group/listener success and collapses on stop.
 
-## Phase 2 physical two-device acceptance
+## Phase 2 — Receive association
 
-Use two Android phones on the same test build.
+1. Test with Wi-Fi disabled and enabled.
+2. Confirm Receive requests the available Wi-Fi enablement capability and waits ten seconds before SSID inspection.
+3. Connect to a matching saved group and verify Android's own reconnection is detected.
+4. Test QR scan for a new group.
+5. Test manual SSID/password entry for a new group.
+6. Confirm the in-app visual controls hand off to Android and Android performs actual association/saving.
+7. Test wrong password, unrelated SSID, missing group, cancellation and Wi-Fi loss.
+8. Confirm the VPN does not start while credentials are being entered or before the expected group is associated.
 
-1. Install the Phase 2 APK on both phones.
-2. On phone A, enable the normal Android Wi-Fi hotspot and activate Share.
-3. On phone B, join phone A's hotspot through Android Wi-Fi settings.
-4. Activate Receive and approve Android's VPN consent dialog.
-5. Verify the Receive VPN notification reports a running tunnel and the Receive indicator turns green only after endpoint/upstream and native-engine checks pass.
-6. Open multiple websites and apps on phone B; confirm TCP traffic works.
-7. Verify DNS resolution from ordinary apps on phone B.
-8. Verify UDP-dependent traffic (for example, QUIC/HTTP3 where available) and repeat with a UDP diagnostic test.
-9. Verify IPv6 when the hotspot and upstream connection offer IPv6; confirm no unintended IPv6 bypass.
-10. Keep multiple receiver devices connected and verify independent TCP sessions and UDP associations.
-11. Stop Share; confirm Receive reports unhealthy and the tunnel stops or reports the unavailable endpoint.
-12. Restore Share and Wi-Fi; verify the receiver can recover after reconnect.
-13. Stop Receive; verify the VPN is removed and the app remains open.
-14. Deny VPN consent and confirm the app reports that Receive cannot start without consent.
-15. Repeat with screen off/background operation and record Samsung/One UI restrictions, battery use and service stability.
+## Phase 3 — VPN/tunnel acceptance
 
-## Failure and privacy checks
+1. Confirm Android VPN consent is requested when required.
+2. Confirm VPN interface establishment precedes native tunnel startup.
+3. Confirm the app's VPN does not recurse through itself.
+4. Verify end-to-end TCP, UDP and DNS from ordinary receiver apps.
+5. Verify IPv6 when supported and ensure no unintended bypass.
+6. Test multiple receivers, network loss/reconnect, Share stop/restart and VPN revocation.
+7. Confirm all health states clear correctly when a layer fails.
 
-- Wi-Fi loss stops the tunnel and clears the healthy status.
-- An unavailable SOCKS endpoint or failed upstream CONNECT probe keeps the indicator red.
-- Native tunnel startup failure does not show a green status.
-- Stopping either role does not stop the other role or close the Activity.
-- No traffic payload, browsing history or credentials are written to logs or uploaded.
-- The app does not silently enable Wi-Fi or modify hotspot DHCP leases.
-- No kill-switch/lockdown behavior is currently implemented; if the VPN service exits, Android may restore the device's normal network route. This limitation must remain explicit.
+## Phase 4 — sharing and diagnostics
 
-## CI and device results
+1. Compare displayed SSID, group information, RSSI/link data and other available verbose values with Android's network diagnostics.
+2. Confirm statistics refresh every five seconds and on network callbacks.
+3. Confirm QR payload is valid and contains only the SSID/passphrase.
+4. Confirm copy contains only the SSID/passphrase.
+5. Confirm Android Sharesheet offers compatible installed apps and does not hard-code destinations.
+6. Confirm no destination is selected or sent to without user action.
 
-- Phase 2 workflow: passed (run [45529698909](https://github.com/pistolwhip-justin/Hotspot-Pistolwhip-d/actions/runs/45529698909)).
-- Phase 2 automated unit tests: passed.
-- Phase 2 native library checksum validation: passed for all four Android ABIs.
-- Phase 2 APK assembly and release: passed; [v0.2.0 test APK](https://github.com/pistolwhip-justin/Hotspot-Pistolwhip-d/releases/tag/v0.2.0) published.
-- Physical two-device TCP/UDP/DNS routing: not yet verified; user testing is the next acceptance step.
-- Physical Samsung/One UI background, Quick Settings and notification behavior: not yet verified.
+## Phase 5 — resilience and privacy
+
+1. Simulate unexpected service termination and verify up to three restart attempts ten seconds apart when OS policy allows.
+2. Confirm log dialog appears only after the retry policy exhausts and when the process remains able to show it.
+3. Confirm Cancel, Share & Discard and Share & Save behavior.
+4. Inspect shared/saved logs for redaction of credentials and identifying values.
+5. Confirm no automatic upload.
+6. Test screen-off/background and Samsung/One UI behavior; document OS-enforced limitations.
+
+## Current results
+
+- Historical v0.2.0 CI build/unit tests/native checksums passed, but its Share service did not create a Wi-Fi Direct group.
+- New Wi-Fi Direct implementation and all physical acceptance checks: pending.
+- No end-to-end Wi-Fi Direct/VPN/tunnel success is claimed until the relevant physical gates pass.
