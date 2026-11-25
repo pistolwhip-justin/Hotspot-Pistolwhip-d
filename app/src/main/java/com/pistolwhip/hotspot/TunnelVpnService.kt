@@ -23,16 +23,22 @@ class TunnelVpnService : VpnService() {
             return START_NOT_STICKY
         }
         val gateway = intent?.getStringExtra(EXTRA_GATEWAY)
-        val network = if (Build.VERSION.SDK_INT >= 29) intent?.getParcelableExtra(EXTRA_NETWORK, Network::class.java) else @Suppress("DEPRECATION") intent?.getParcelableExtra(EXTRA_NETWORK)
+        val network = readUnderlyingNetwork(intent)
         if (gateway.isNullOrBlank()) {
             stopSelf()
             return START_NOT_STICKY
         }
-        startTunnel(gateway)
+        startTunnel(gateway, network)
         return START_STICKY
     }
 
-    private fun startTunnel(gateway: String) {
+    @Suppress("DEPRECATION")
+    private fun readUnderlyingNetwork(intent: Intent?): Network? {
+        return if (Build.VERSION.SDK_INT >= 33) intent?.getParcelableExtra(EXTRA_NETWORK, Network::class.java)
+        else intent?.getParcelableExtra(EXTRA_NETWORK)
+    }
+
+    private fun startTunnel(gateway: String, network: Network?) {
         if (tun != null) return
         val notification = Notifications.build(this, "Receive VPN", "Starting device-wide tunnel")
         if (Build.VERSION.SDK_INT >= 34) startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
@@ -134,6 +140,7 @@ class TunnelVpnService : VpnService() {
             val intent = Intent(context, TunnelVpnService::class.java)
                 .setAction(ACTION_START)
                 .putExtra(EXTRA_GATEWAY, gateway)
+                .putExtra(EXTRA_NETWORK, network)
                 .putExtra(EXTRA_NETWORK, network)
             if (Build.VERSION.SDK_INT >= 26) context.startForegroundService(intent) else context.startService(intent)
         }
