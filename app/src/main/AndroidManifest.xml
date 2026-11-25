@@ -12,6 +12,7 @@
     <application
         android:allowBackup="false"
         android:label="Hotspot Pistolwhip'd"
+        android:icon="@drawable/ic_hotspot_mark"
         android:theme="@android:style/Theme.Material.NoActionBar"
         android:usesCleartextTraffic="false">
         <activity
@@ -43,7 +44,7 @@
         <service
             android:name=".ShareTileService"
             android:label="Share"
-            android:icon="@android:drawable/ic_menu_share"
+            android:icon="@drawable/ic_hotspot_mark"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
             android:exported="true"
             android:settingsActivity="com.pistolwhip.hotspot.MainActivity">
@@ -52,7 +53,7 @@
         <service
             android:name=".ReceiveTileService"
             android:label="Receive"
-            android:icon="@android:drawable/ic_menu_view"
+            android:icon="@drawable/ic_hotspot_mark"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
             android:exported="true"
             android:settingsActivity="com.pistolwhip.hotspot.MainActivity">
