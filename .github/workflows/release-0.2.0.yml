@@ -54,12 +54,15 @@ jobs:
         if: steps.release_guard.outputs.already_published != 'true'
         run: bash scripts/fetch-native-libs.sh
 
-      - name: Install Gradle and generate wrapper
+      - name: Set up verified Gradle 8.9
         if: steps.release_guard.outputs.already_published != 'true'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gradle
-          gradle wrapper --gradle-version 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Generate Gradle wrapper with distribution checksum
+        if: steps.release_guard.outputs.already_published != 'true'
+        run: gradle wrapper --gradle-version 8.9 --gradle-distribution-sha256-sum=d725d707bfabd4dfdc958c624003b3c80accc03f7037b5122c4b1d0ef15cecab
 
       - name: Build and test
         if: steps.release_guard.outputs.already_published != 'true'
