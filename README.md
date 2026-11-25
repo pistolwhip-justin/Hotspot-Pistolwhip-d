@@ -39,7 +39,7 @@ The receiver uses [HevSocks5Tunnel](https://github.com/heiher/hev-socks5-tunnel)
 
 ## 📦 Latest published test APK
 
-<badge>v0.2.0 — Phase 2 VPN Tunnel</badge>
+**v0.2.0 — Phase 2 VPN Tunnel**
 
 - [Download APK](https://github.com/pistolwhip-justin/Hotspot-Pistolwhip-d/releases/download/v0.2.0/Hotspot-Pistolwhipd-v0.2.0-debug.apk)
 - [GitHub Release notes](https://github.com/pistolwhip-justin/Hotspot-Pistolwhip-d/releases/tag/v0.2.0)
