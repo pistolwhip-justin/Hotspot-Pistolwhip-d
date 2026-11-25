@@ -17,7 +17,7 @@
 
 ## Phase 2 — device-wide VPN tunnel
 
-**Status: implementation branch created; CI validation and physical acceptance pending.**
+**Status: v0.2.0 test APK published; CI build and automated tests passed; physical acceptance pending.**
 
 Implementation scope:
 
