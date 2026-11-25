@@ -1,5 +1,6 @@
 package com.pistolwhip.hotspot
 
+import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.net.VpnService
@@ -124,5 +125,12 @@ class TunnelVpnService : VpnService() {
         private const val TUN_DNS = "198.18.0.2"
         private const val TUN_IPV6 = "fc00::1"
         private const val TUN_IPV6_DNS = "2001:4860:4860::8888"
+
+        fun start(context: Context, gateway: String) {
+            val intent = Intent(context, TunnelVpnService::class.java)
+                .setAction(ACTION_START)
+                .putExtra(EXTRA_GATEWAY, gateway)
+            if (Build.VERSION.SDK_INT >= 26) context.startForegroundService(intent) else context.startService(intent)
+        }
     }
 }
