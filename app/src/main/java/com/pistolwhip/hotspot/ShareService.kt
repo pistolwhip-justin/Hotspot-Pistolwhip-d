@@ -38,13 +38,15 @@ class ShareService : Service() {
             val group = WifiDirectGroup(this)
             wifiDirectGroup = group
             group.create(
-                onReady = {
+                onReady = { credentials ->
+                    State.setShareCredentials(credentials.ssid, credentials.passphrase)
                     State.setShare(this, true)
                     clients.execute { listen() }
                 },
                 onError = { message ->
                     State.setShare(this, false)
                     State.setShareHealthy(this, false)
+                    State.clearShareCredentials()
                     (getSystemService(android.app.NotificationManager::class.java))
                         .notify(11, Notifications.build(this, "Sharing service", message, false))
                     group.remove()
