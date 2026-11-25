@@ -84,7 +84,11 @@ class MainActivity : ComponentActivity() {
     private fun serviceToggle(cls: Class<*>, stopAction: String, enabled: Boolean) {
         val intent = Intent(this, cls).apply { if (!enabled) action = stopAction }
         if (Build.VERSION.SDK_INT >= 26 && enabled) startForegroundService(intent) else startService(intent)
-        if (cls == ShareService::class.java) State.setShare(this, enabled) else State.setReceive(this, enabled)
+        if (cls == ShareService::class.java) {
+            if (!enabled) State.setShare(this, false)
+        } else {
+            State.setReceive(this, enabled)
+        }
     }
 
     companion object {
