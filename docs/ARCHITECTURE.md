@@ -15,6 +15,7 @@ The receiver's normal Wi-Fi association is managed by Android. Wi-Fi Direct is n
 - TCP CONNECT requests create independent outbound TCP sockets.
 - UDP ASSOCIATE requests create independent UDP relay sockets. The relay parses and emits RFC 1928 UDP datagrams, supports IPv4, IPv6 and domain-name destinations, and pins each association to the receiver address that opened its TCP control channel.
 - Multiple TCP sessions and UDP associations can run concurrently.
+- Each accepted TCP peer is checked against the subnet of the local receiving interface; peers from unrelated interface subnets are rejected.
 - Hotspot lifecycle and DHCP address assignment remain under Android/Samsung controls. The app does not attempt to set or randomize DHCP leases.
 - The endpoint is unauthenticated and is intended to be reachable only from the private hotspot network. Do not expose this listener to untrusted networks.
 
