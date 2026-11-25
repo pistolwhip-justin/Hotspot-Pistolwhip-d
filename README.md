@@ -1,69 +1,91 @@
 # 📡 Hotspot Pistolwhip'd
 
-![Android](https://img.shields.io/badge/platform-Android-3DDC84?logo=android&logoColor=white) ![Status](https://img.shields.io/badge/status-Phase%201%20prototype-orange)
+![Android](https://img.shields.io/badge/platform-Android-3DDC84?logo=android&logoColor=white) ![Status](https://img.shields.io/badge/status-Phase%202%20implementation-orange)
 
-A clean-room Android hotspot-sharing companion from Pistol Whip Productions. One phone shares its internet connection over its Wi-Fi hotspot; another phone joins that Wi-Fi network normally and activates a receiving link.
+An Android hotspot-sharing companion from Pistol Whip Productions. One phone shares its connection over its Wi-Fi hotspot; another phone joins that Wi-Fi network normally and routes device traffic through the sharing phone.
 
-This is a new implementation. No source code, binaries, assets, package names or branded identifiers are imported from the previous application.
+## 🎯 What it does
 
-## 🎯 Product goals
-- One Share toggle and one Receive toggle.
-- Sharing phone hosts a multi-client SOCKS5 endpoint on its hotspot LAN.
-- Receiving phone joins through Android's normal Wi-Fi controls, discovers the gateway and verifies the endpoint.
-- Separate Quick Settings tiles toggle their own services without opening or foregrounding the app.
-- Long-press either tile to open the app; tapping the persistent service notification also opens the app.
-- The separate status indicator is non-interactive.
-- True-black AMOLED interface, Roboto/system typography, Material 3 dynamic accents and One UI-inspired touch targets.
-- AI concepts are deferred to a possible future phase; they are not part of the current build or core networking dependency.
+- One **Share** toggle and one **Receive** toggle.
+- Share phone hosts a multi-client SOCKS5 service on the private hotspot LAN.
+- Receive phone joins through normal Android Wi-Fi settings, discovers the gateway and requests Android's VPN permission.
+- Android VpnService captures receiver traffic and a native TUN-to-SOCKS5 engine forwards TCP and UDP through the Share phone.
+- IPv4, IPv6 and DNS routing are configured for the receiver tunnel.
+- Share supports SOCKS5 TCP CONNECT and UDP ASSOCIATE sessions.
+- Separate Share and Receive Quick Settings tiles use the app mark; tapping a tile toggles its service without opening the app.
+- Long-pressing a tile or tapping the persistent service notification opens the app.
+- The compact, scrollable AMOLED-black dashboard uses system-scaled text, Material 3 dynamic accents and One UI-friendly spacing.
+- Multiple receiver sessions are supported; Android/Samsung hotspot DHCP remains responsible for client IP allocation.
+- No root, Wi-Fi Direct, cloud relay, traffic inspection or AI service is required. AI remains deferred.
 
-## 🧭 Current phase
+## 🧭 Current development status
 
-**Phase 1 — clean-room foundation and local-link prototype.** Includes app shell, independent controls, foreground services, a multi-client SOCKS5 listener and receiver-side gateway/endpoint health checks. It is not yet a complete internet tunnel; VPN packet forwarding is Phase 2.
+**Phase 1.1 — interaction polish:** released as v0.1.1. The existing test APK was exercised and user feedback was received.
 
-**Phase 1.1 — interaction polish.** Quick Settings taps operate silently in the background, tile long-press opens the app, notification tap opens the app, and app switches refresh when the user returns.
+**Phase 2 — device-wide VPN tunnel:** implementation is in progress on the Phase 2 development branch. It adds Android VpnService, the native TCP/UDP packet transport, SOCKS5 UDP relay support, DNS routing and VPN lifecycle handling. The code and build pipeline still need CI validation; no Phase 2 APK is being represented as ready until the build and tests pass.
 
-## 🏗️ Architecture and requirements
+The Phase 2 readiness gate is a two-device test proving that traffic from apps on the receiving phone reaches the internet through the sharing phone. A successful build alone does not satisfy that gate.
+
+## 🏗️ Architecture and decisions
+
 - [Architecture](docs/ARCHITECTURE.md)
 - [Requirements](docs/REQUIREMENTS.md)
 - [Development plan](docs/DEVELOPMENT_PLAN.md)
 - [Decision record](docs/DECISIONS.md)
 - [Test plan](docs/TEST_PLAN.md)
+- [Third-party notices](THIRD_PARTY_NOTICES.md)
 
-## 📦 Latest test APK
+The receiver uses [HevSocks5Tunnel](https://github.com/heiher/hev-socks5-tunnel) 2.20.0 (MIT) for the native TUN-to-SOCKS5 data plane. The four Android ABI libraries are downloaded by the build script and SHA-256 verified before packaging; they are not stored as opaque binaries in this repository.
 
-**v0.1.0 — Phase 1 prototype**
+## 📦 Latest published test APK
 
-- [Download APK](https://github.com/pistolwhip-justin/Hotspot-Pistolwhip-d/releases/download/v0.1.0/Hotspot-Pistolwhipd-v0.1.0-debug.apk)
-- [GitHub Release notes](https://github.com/pistolwhip-justin/Hotspot-Pistolwhip-d/releases/tag/v0.1.0)
+**v0.1.1 — Phase 1.1 Interaction Polish**
 
-Debug-signed sideload build. This is a local-link prototype, not a complete internet tunnel. The v0.1.1 interaction changes are in development and are not yet part of this release.
+- [Download APK](https://github.com/pistolwhip-justin/Hotspot-Pistolwhip-d/releases/download/v0.1.1/Hotspot-Pistolwhipd-v0.1.1-debug.apk)
+- [GitHub Release notes](https://github.com/pistolwhip-justin/Hotspot-Pistolwhip-d/releases/tag/v0.1.1)
 
-## 🧪 Build
-Requires JDK 17 and Android SDK API 35. The GitHub Actions workflow creates the Gradle wrapper and runs unit tests plus the Android debug build.
+This published build is the local-link prototype. It does **not** contain the Phase 2 device-wide VPN tunnel. A new versioned release will be published only after the Phase 2 build and automated tests pass.
 
-```bash
-gradle --no-daemon testDebugUnitTest assembleDebug
-```
+## 🧪 Build locally
 
-Debug APKs are sideload test builds, not production/Play Store releases.
+Requires JDK 17, Android SDK API 35 and Gradle 8.9. The native libraries are pinned to HevSocks5Tunnel 2.20.0 and verified by SHA-256.
 
-## 📱 Phase 1 test
-1. Enable the sharing phone's Android hotspot in system settings.
-2. Turn on **Share** in the app.
-3. Connect the receiving phone to that hotspot as an ordinary Wi-Fi network.
-4. Turn on **Receive**. The app discovers the gateway and probes the SOCKS5 endpoint.
-5. Use the separate Quick Settings tiles to toggle either service without opening the app.
+~~~bash
+bash scripts/fetch-native-libs.sh
+gradle wrapper --gradle-version 8.9 --gradle-distribution-sha256-sum=d725d707bfabd4dfdc958c624003b3c80accc03f7037b5122c4b1d0ef15cecab
+./gradlew --no-daemon testDebugUnitTest assembleDebug
+~~~
 
-**Important:** Phase 1 verifies the local link only. It does not yet route all receiver traffic through the sharing phone. Android/Samsung hotspot DHCP assigns client IP addresses; the app supports multiple independent clients rather than trying to set DHCP leases itself.
+The native dependency script supports arm64-v8a, armeabi-v7a, x86 and x86_64. GitHub Actions runs the same fetch, checksum, test and APK assembly steps from committed source.
 
-## ⚠️ Known limitations
-- Full-device VPN packet forwarding is not implemented in Phase 1.
-- Wi-Fi/hotspot controls remain subject to Android and Samsung permissions/system prompts.
-- Physical-device validation is still required for One UI, gateway discovery, Quick Settings, notification interactions, background execution and multi-client behavior.
+Debug APKs are sideload test builds, not production or Play Store releases.
+
+## 📱 How to test the Phase 2 build
+
+1. Install the same Phase 2 APK on two Android phones.
+2. On the sharing phone, enable its Android Wi-Fi hotspot in system settings and turn on **Share**.
+3. On the receiving phone, join that hotspot as an ordinary Wi-Fi network.
+4. Turn on **Receive** and approve Android's VPN permission when prompted.
+5. Confirm the **Receive VPN** notification reports that the tunnel is active.
+6. Browse from multiple apps on the receiving phone. Verify IPv4, IPv6 where available, DNS, TCP sites and UDP-dependent traffic.
+7. Repeat with multiple receiver devices and test Wi-Fi disconnect/reconnect and Share stop/restart.
+
+The Receive service checks that the sharing endpoint can establish a SOCKS5 connection to an external TCP endpoint before starting the VPN. A green service notification also requires the native tunnel engine to report that it is running. This health check is useful evidence, but the actual device-wide traffic test remains a physical-device acceptance check.
+
+## ⚠️ Known limitations and validation
+
+- Phase 2 CI build, native loading and automated test results are pending.
+- Physical two-device TCP/UDP/DNS routing has not yet been verified.
+- IPv6 behavior depends on the underlying hotspot and upstream internet connection supporting IPv6.
+- Android and Samsung control hotspot lifecycle, DHCP addresses and background execution.
+- The app does not silently enable Wi-Fi or change hotspot DHCP leases.
+- A debug-signed APK is for sideload testing only.
 - No AI features are included in the current scope.
 
 ## 🏢 Project
-Developed by **Pistol Whip Productions**. Final product naming, original artwork and distribution identity require Pistol Whip Productions approval.
+
+Developed by **Pistol Whip Productions**.
 
 ---
-Last updated: 2026-11-24
+
+Last updated: 2026-11-25

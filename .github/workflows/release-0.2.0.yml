@@ -1,0 +1,140 @@
+name: Build and release Hotspot Pistolwhip'd 0.2.0
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-0.2.0
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    outputs:
+      already_published: ${{ steps.release_guard.outputs.already_published }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Refuse to overwrite an existing versioned release
+        id: release_guard
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          tag="v0.2.0"
+          apk="Hotspot-Pistolwhipd-v0.2.0-debug.apk"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json assets > release.json 2>/dev/null; then
+            if jq -e --arg name "$apk" '.assets[] | select(.name == $name)' release.json >/dev/null; then
+              echo "already_published=true" >> "$GITHUB_OUTPUT"
+              echo "The expected APK is already published. This immutable release will not be changed."
+            else
+              echo "Release $tag exists but does not contain $apk; refusing to overwrite or repair it." >&2
+              exit 1
+            fi
+          else
+            echo "already_published=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up JDK 17
+        if: steps.release_guard.outputs.already_published != 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Download and verify pinned native tunnel libraries
+        if: steps.release_guard.outputs.already_published != 'true'
+        run: bash scripts/fetch-native-libs.sh
+
+      - name: Set up verified Gradle 8.9
+        if: steps.release_guard.outputs.already_published != 'true'
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Generate Gradle wrapper with distribution checksum
+        if: steps.release_guard.outputs.already_published != 'true'
+        run: gradle wrapper --gradle-version 8.9 --gradle-distribution-sha256-sum=d725d707bfabd4dfdc958c624003b3c80accc03f7037b5122c4b1d0ef15cecab
+
+      - name: Build and test
+        if: steps.release_guard.outputs.already_published != 'true'
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon testDebugUnitTest assembleDebug
+
+      - name: Name APK
+        if: steps.release_guard.outputs.already_published != 'true'
+        run: cp app/build/outputs/apk/debug/app-debug.apk Hotspot-Pistolwhipd-v0.2.0-debug.apk
+
+      - name: Preserve APK as a build artifact for review
+        if: steps.release_guard.outputs.already_published != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Hotspot-Pistolwhipd-v0.2.0-debug
+          path: Hotspot-Pistolwhipd-v0.2.0-debug.apk
+          retention-days: 14
+
+  release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.build.outputs.already_published != 'true'
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Refuse to overwrite a release created during the build
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view v0.2.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "v0.2.0 appeared during the build; refusing to overwrite it."
+            exit 1
+          fi
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: Hotspot-Pistolwhipd-v0.2.0-debug
+
+      - name: Publish immutable VPN test release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v0.2.0
+          target_commitish: ${{ github.sha }}
+          name: Hotspot Pistolwhip'd v0.2.0 — Phase 2 VPN Tunnel
+          prerelease: true
+          fail_on_unmatched_files: true
+          files: Hotspot-Pistolwhipd-v0.2.0-debug.apk
+          make_latest: false
+          body: |
+            Phase 2 — receiver-side device-wide VPN tunnel.
+
+            - Adds Android VpnService and a native TUN-to-SOCKS5 transport.
+            - Adds TCP and UDP SOCKS5 forwarding, including UDP ASSOCIATE.
+            - Routes IPv4 and IPv6 traffic and DNS through the sharing phone.
+            - Adds upstream SOCKS CONNECT validation and VPN lifecycle notifications.
+            - Uses HevSocks5Tunnel 2.20.0 (MIT); native ABI assets are checksum-verified during CI.
+
+            Debug-signed sideload test build. Not a production or Play Store release.
+
+            Physical two-device testing remains required. CI compilation and unit tests do not establish that hotspot routing, TCP/UDP traffic, DNS, or Samsung background behavior work on physical devices.
+
+      - name: Verify published APK and immutable tag target
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          expected="$GITHUB_SHA"
+          actual="$(gh api "repos/$GITHUB_REPOSITORY/commits/v0.2.0" --jq '.sha')"
+          test "$actual" = "$expected"
+          gh release view v0.2.0 --repo "$GITHUB_REPOSITORY" --json assets \
+            --jq '.assets[] | select(.name == "Hotspot-Pistolwhipd-v0.2.0-debug.apk") | .name' \
+            | grep -Fx 'Hotspot-Pistolwhipd-v0.2.0-debug.apk'

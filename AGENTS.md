@@ -3,7 +3,7 @@
 Read the current global development protocols before making changes:
 https://github.com/pistolwhip-justin/development-protocols-n-assets
 
-Read `DEVELOPMENT_PROTOCOLS.md` and `AGENTS.md` from that repository. Preserve this project's clean-room constraint: do not import or adapt source code, binaries, assets, package identifiers or branding from the former app.
+Read `DEVELOPMENT_PROTOCOLS.md` and `AGENTS.md` from that repository. Maintain this project's standalone implementation and project-owned identity: use only project-owned or explicitly supplied source code, assets, package identifiers and branding.
 
 Current authority:
 - `docs/REQUIREMENTS.md`
