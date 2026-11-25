@@ -14,6 +14,7 @@ import java.net.InetSocketAddress
 import java.net.Socket
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import hev.htproxy.TProxyService
 
 class ReceiveService : Service() {
     private val executor = Executors.newSingleThreadScheduledExecutor()
@@ -68,7 +69,7 @@ class ReceiveService : Service() {
             currentNetwork = cm.allNetworks.firstOrNull {
                 cm.getNetworkCapabilities(it)?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true
             }
-            executor.scheduleWithFixedDelay({ checkLink() }, 0, 5, TimeUnit.SECONDS)
+            executor.scheduleWithFixedDelay({ checkLink() }, 0, 15, TimeUnit.SECONDS)
         } else {
             scheduleCheck()
         }
@@ -123,13 +124,20 @@ class ReceiveService : Service() {
             return
         }
 
-        if (State.tunnel(this)) {
+        if (State.tunnel(this) && nativeTunnelRunning()) {
             update(true, "VPN active · sharing endpoint and upstream SOCKS connection verified")
+        } else if (State.tunnel(this)) {
+            stopTunnel()
+            update(false, "VPN engine stopped — restarting the tunnel")
         } else if (System.currentTimeMillis() - tunnelRequestedAt > 15_000) {
             update(false, "VPN tunnel did not become active — check the Receive VPN notification")
         } else {
             update(false, "Sharing endpoint verified — starting device-wide VPN")
         }
+    }
+
+    private fun nativeTunnelRunning(): Boolean {
+        return try { TProxyService.TProxyIsRunning() } catch (_: Throwable) { false }
     }
 
     /** Verify a real SOCKS5 CONNECT to an Internet host over the selected Wi-Fi network. */
