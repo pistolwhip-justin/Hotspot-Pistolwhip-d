@@ -16,6 +16,8 @@ import hev.htproxy.TProxyService
 class TunnelVpnService : VpnService() {
     private var tun: ParcelFileDescriptor? = null
     private var tunnelStarted = false
+    private var activeGateway: String? = null
+    private var activeNetwork: Network? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {
@@ -39,13 +41,18 @@ class TunnelVpnService : VpnService() {
     }
 
     private fun startTunnel(gateway: String, network: Network?) {
-        if (tun != null) return
+        if (tun != null && activeGateway == gateway && activeNetwork == network) return
+        if (tun != null) stopTunnel()
+        activeGateway = gateway
+        activeNetwork = network
         val notification = Notifications.build(this, "Receive VPN", "Starting device-wide tunnel")
         if (Build.VERSION.SDK_INT >= 34) startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
         else startForeground(NOTIFICATION_ID, notification)
 
         try {
-            if (Build.VERSION.SDK_INT >= 22 && network != null) setUnderlyingNetworks(arrayOf(network))
+            if (Build.VERSION.SDK_INT >= 22 && network != null && !setUnderlyingNetworks(arrayOf(network))) {
+                throw IllegalStateException("Could not bind VPN to the selected Wi-Fi network")
+            }
             val builder = Builder()
                 .setSession("Hotspot Pistolwhip'd")
                 .setBlocking(false)
@@ -109,6 +116,8 @@ class TunnelVpnService : VpnService() {
         State.setTunnel(this, false)
         try { tun?.close() } catch (_: Exception) { }
         tun = null
+        activeGateway = null
+        activeNetwork = null
     }
 
     override fun onRevoke() {
