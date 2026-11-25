@@ -13,12 +13,14 @@ import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.net.Socket
 import java.net.SocketTimeoutException
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 
 class ShareService : Service() {
     private val running = AtomicBoolean(false)
     private val clients = Executors.newCachedThreadPool()
+    private val activeClients = ConcurrentHashMap.newKeySet<Socket>()
     @Volatile private var server: ServerSocket? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -36,7 +38,11 @@ class ShareService : Service() {
                 State.setShareHealthy(this, true)
                 while (running.get()) {
                     val client = socket.accept()
-                    clients.execute { handleClient(client) }
+                    activeClients.add(client)
+                    clients.execute {
+                        try { handleClient(client) }
+                        finally { activeClients.remove(client) }
+                    }
                 }
             }
         } catch (_: Exception) {
@@ -191,6 +197,8 @@ class ShareService : Service() {
     override fun onDestroy() {
         running.set(false)
         try { server?.close() } catch (_: Exception) { }
+        activeClients.forEach { try { it.close() } catch (_: Exception) { } }
+        activeClients.clear()
         State.setShare(this, false)
         State.setShareHealthy(this, false)
         clients.shutdownNow()
