@@ -48,6 +48,7 @@ class TunnelVpnService : VpnService() {
             if (Build.VERSION.SDK_INT >= 22 && network != null) setUnderlyingNetworks(arrayOf(network))
             val builder = Builder()
                 .setSession("Hotspot Pistolwhip'd")
+                .setBlocking(false)
                 .setMtu(TUN_MTU)
                 .addAddress(TUN_IPV4, 30)
                 .addRoute("0.0.0.0", 0)
