@@ -2,6 +2,9 @@ package com.pistolwhip.hotspot
 
 import android.Manifest
 import android.content.Intent
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.graphics.Bitmap
 import android.net.VpnService
 import android.os.Build
 import android.os.Bundle
@@ -9,6 +12,7 @@ import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -19,17 +23,21 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
+import com.google.zxing.BarcodeFormat
+import com.google.zxing.qrcode.QRCodeWriter
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val requested = mutableListOf(Manifest.permission.POST_NOTIFICATIONS)
+        val requested = mutableListOf<String>()
         if (Build.VERSION.SDK_INT >= 33) {
+            requested += Manifest.permission.POST_NOTIFICATIONS
             requested += Manifest.permission.NEARBY_WIFI_DEVICES
         } else {
             requested += Manifest.permission.ACCESS_FINE_LOCATION
@@ -100,6 +108,8 @@ private fun Dashboard(onShare: (Boolean) -> Unit, onReceive: (Boolean) -> Unit, 
     val receiving by State.receiveActive.collectAsState()
     val shareHealthy by State.shareHealthy.collectAsState()
     val receiveHealthy by State.receiveHealthy.collectAsState()
+    val shareSsid by State.shareSsid.collectAsState()
+    val sharePassphrase by State.sharePassphrase.collectAsState()
 
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         State.refresh(context)
@@ -114,8 +124,11 @@ private fun Dashboard(onShare: (Boolean) -> Unit, onReceive: (Boolean) -> Unit, 
                 Text("Hotspot Pistolwhip'd", color = Color.White, fontSize = 27.sp, fontWeight = FontWeight.SemiBold)
                 Text("Share your connection. Join from another phone.", color = Color(0xffaaaaaa), fontSize = 12.sp)
             }
-            RoleCard("Share", "Make this phone's hotspot connection available to other devices.", sharing, shareHealthy, "SOCKS5 · Port 1080") { value ->
+            RoleCard("Share", "Create a direct Wi-Fi group for nearby devices.", sharing, shareHealthy, "Wi-Fi Direct · SOCKS5") { value ->
                 onShare(value)
+            }
+            if (sharing && shareSsid.isNotBlank() && sharePassphrase.isNotBlank()) {
+                ShareCredentialsPanel(shareSsid, sharePassphrase)
             }
             RoleCard("Receive", "Connect to the sharing phone's Wi-Fi network first, then activate the tunnel.", receiving, receiveHealthy, "VPN · TCP + UDP") { value ->
                 onReceive(value)
@@ -162,5 +175,60 @@ private fun RoleCard(title: String, description: String, checked: Boolean, healt
                 Text(detail, color = Color(0xff888888), fontSize = 10.sp)
             }
         }
+    }
+}
+
+
+@Composable
+private fun ShareCredentialsPanel(ssid: String, passphrase: String) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var showQr by remember(ssid, passphrase) { mutableStateOf(false) }
+    val qrBitmap = remember(ssid, passphrase) {
+        runCatching {
+            val matrix = QRCodeWriter().encode(
+                "WIFI:T:WPA;S:$ssid;P:$passphrase;;",
+                BarcodeFormat.QR_CODE,
+                480,
+                480
+            )
+            Bitmap.createBitmap(480, 480, Bitmap.Config.ARGB_8888).also { bitmap ->
+                for (x in 0 until 480) for (y in 0 until 480) {
+                    bitmap.setPixel(x, y, if (matrix[x, y]) android.graphics.Color.BLACK else android.graphics.Color.WHITE)
+                }
+            }
+        }.getOrNull()
+    }
+    Card(colors = CardDefaults.cardColors(containerColor = Color(0xff111111)), shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("Wi-Fi Direct network", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+            Text("SSID  $ssid", color = Color(0xffbdbdbd), fontSize = 12.sp)
+            Text("PASS  $passphrase", color = Color(0xffbdbdbd), fontSize = 12.sp)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                OutlinedButton(onClick = {
+                    val payload = "SSID: $ssid\nPassword: $passphrase"
+                    val clipboard = context.getSystemService(ClipboardManager::class.java)
+                    clipboard?.setPrimaryClip(ClipData.newPlainText("Wi-Fi credentials", payload))
+                }, modifier = Modifier.weight(1f)) { Text("Copy") }
+                OutlinedButton(onClick = { showQr = true }, modifier = Modifier.weight(1f)) { Text("QR code") }
+                Button(onClick = {
+                    val send = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_TEXT, "SSID: $ssid\nPassword: $passphrase")
+                    }
+                    context.startActivity(Intent.createChooser(send, "Share Wi-Fi credentials"))
+                }, modifier = Modifier.weight(1f)) { Text("Share") }
+            }
+        }
+    }
+    if (showQr) {
+        AlertDialog(
+            onDismissRequest = { showQr = false },
+            title = { Text("Scan to join Wi-Fi") },
+            text = {
+                if (qrBitmap != null) Image(bitmap = qrBitmap.asImageBitmap(), contentDescription = "Wi-Fi network QR code", modifier = Modifier.fillMaxWidth())
+                else Text("QR code could not be generated.")
+            },
+            confirmButton = { TextButton(onClick = { showQr = false }) { Text("Close") } }
+        )
     }
 }
