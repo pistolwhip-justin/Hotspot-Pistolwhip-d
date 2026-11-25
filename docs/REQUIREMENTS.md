@@ -22,6 +22,7 @@
 18. Project source, package identifiers, assets and branding are owned by Pistol Whip Productions or explicitly supplied by it.
 19. AI integration is deferred and is not a dependency of mass testing.
 20. The app must not require root access, Wi-Fi Direct, a remote VPN server or a cloud relay.
+21. The SOCKS listener must reject peers outside the local receiving interface subnet.
 
 ## Phase 1 and 1.1 — delivered behavior
 
