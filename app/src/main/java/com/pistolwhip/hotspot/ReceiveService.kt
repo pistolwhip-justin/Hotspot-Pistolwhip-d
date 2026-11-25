@@ -20,6 +20,7 @@ class ReceiveService : Service() {
     @Volatile private var currentNetwork: Network? = null
     @Volatile private var monitoring = false
     @Volatile private var activeGateway: String? = null
+    @Volatile private var activeNetwork: Network? = null
     @Volatile private var tunnelRequestedAt = 0L
 
     private val callback = object : ConnectivityManager.NetworkCallback() {
@@ -111,12 +112,13 @@ class ReceiveService : Service() {
             return
         }
 
-        if (activeGateway != gateway) {
+        if (activeGateway != gateway || activeNetwork != network) {
             stopTunnel()
             activeGateway = gateway
+            activeNetwork = network
             tunnelRequestedAt = System.currentTimeMillis()
             State.setTunnel(this, false)
-            TunnelVpnService.start(this, gateway)
+            TunnelVpnService.start(this, gateway, network)
             update(false, "Sharing endpoint verified — starting device-wide VPN")
             return
         }
@@ -174,6 +176,7 @@ class ReceiveService : Service() {
         try { stopService(Intent(this, TunnelVpnService::class.java)) } catch (_: Exception) { }
         State.setTunnel(this, false)
         activeGateway = null
+        activeNetwork = null
         tunnelRequestedAt = 0L
     }
 
