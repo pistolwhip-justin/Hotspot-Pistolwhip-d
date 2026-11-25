@@ -52,25 +52,7 @@ jobs:
 
       - name: Download and verify pinned native tunnel libraries
         if: steps.release_guard.outputs.already_published != 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-          base="https://github.com/heiher/hev-socks5-tunnel/releases/download/2.20.0"
-          mkdir -p app/src/main/jniLibs/{arm64-v8a,armeabi-v7a,x86,x86_64}
-          curl -fsSL "$base/hev-socks5-tunnel-android-arm64-v8a" -o /tmp/hev-arm64.so
-          curl -fsSL "$base/hev-socks5-tunnel-android-armeabi-v7a" -o /tmp/hev-armv7.so
-          curl -fsSL "$base/hev-socks5-tunnel-android-x86" -o /tmp/hev-x86.so
-          curl -fsSL "$base/hev-socks5-tunnel-android-x86_64" -o /tmp/hev-x86_64.so
-          printf '%s  %s\n' \
-            '88b67182d6db79e880fa9a5aee850cf9ebf094efa56cb42d195ee0308085dd42' /tmp/hev-arm64.so \
-            '230da9afae932982c394489e414baa3a7c24d61d47b80c4834f0c9e02d960b28' /tmp/hev-armv7.so \
-            '052600549b1c557b058e68222ff9a6115c96f7588715b02e3214c75b8af1e8a6' /tmp/hev-x86.so \
-            '14de34d62890929077224a76f222cd1e6f92f6d2f31a01b79996c96c79110339' /tmp/hev-x86_64.so \
-            | sha256sum --check -
-          install -m 0644 /tmp/hev-arm64.so app/src/main/jniLibs/arm64-v8a/libhev-socks5-tunnel.so
-          install -m 0644 /tmp/hev-armv7.so app/src/main/jniLibs/armeabi-v7a/libhev-socks5-tunnel.so
-          install -m 0644 /tmp/hev-x86.so app/src/main/jniLibs/x86/libhev-socks5-tunnel.so
-          install -m 0644 /tmp/hev-x86_64.so app/src/main/jniLibs/x86_64/libhev-socks5-tunnel.so
+        run: bash scripts/fetch-native-libs.sh
 
       - name: Install Gradle and generate wrapper
         if: steps.release_guard.outputs.already_published != 'true'
