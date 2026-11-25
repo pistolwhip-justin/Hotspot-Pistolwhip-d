@@ -23,11 +23,36 @@ class ShareService : Service() {
     private val clients = Executors.newCachedThreadPool()
     private val activeClients = ConcurrentHashMap.newKeySet<Socket>()
     @Volatile private var server: ServerSocket? = null
+    @Volatile private var wifiDirectGroup: WifiDirectGroup? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == ACTION_STOP) { stopSelf(); return START_NOT_STICKY }
-        startForeground(11, Notifications.build(this, "Sharing service", "SOCKS5 TCP/UDP endpoint listening on port $PORT"))
-        if (running.compareAndSet(false, true)) clients.execute { listen() }
+        if (intent?.action == ACTION_STOP) {
+            running.set(false)
+            try { server?.close() } catch (_: Exception) { }
+            wifiDirectGroup?.remove()
+            stopSelf()
+            return START_NOT_STICKY
+        }
+        startForeground(11, Notifications.build(this, "Sharing service", "Creating Wi-Fi Direct group"))
+        if (running.compareAndSet(false, true)) {
+            val group = WifiDirectGroup(this)
+            wifiDirectGroup = group
+            group.create(
+                onReady = {
+                    State.setShare(this, true)
+                    clients.execute { listen() }
+                },
+                onError = { message ->
+                    State.setShare(this, false)
+                    State.setShareHealthy(this, false)
+                    (getSystemService(android.app.NotificationManager::class.java))
+                        .notify(11, Notifications.build(this, "Sharing service", message, false))
+                    group.remove()
+                    stopForeground(STOP_FOREGROUND_REMOVE)
+                    stopSelf()
+                }
+            )
+        }
         return START_STICKY
     }
 
@@ -231,6 +256,8 @@ class ShareService : Service() {
         activeClients.clear()
         State.setShare(this, false)
         State.setShareHealthy(this, false)
+        wifiDirectGroup?.remove()
+        wifiDirectGroup = null
         clients.shutdownNow()
         super.onDestroy()
     }
