@@ -1,10 +1,9 @@
 # 📡 Hotspot Pistolwhip'd
 
-![Android](https://img.shields.io/badge/platform-Android-3DDC84?logo=android&logoColor=white) ![Status](https://img.shields.io/badge/status-Phase%201%20prototype-orange)
+![Android](https://img.shields.io/badge/platform-Android-3DDC84?logo=android&logoColor=white) ![Status](https://img.shields.io/badge/status-Phase%201.1%20test-orange)
 
-A clean-room Android hotspot-sharing companion from Pistol Whip Productions. One phone shares its internet connection over its Wi-Fi hotspot; another phone joins that Wi-Fi network normally and activates a receiving link.
+A Pistol Whip Productions Android hotspot-sharing companion from Pistol Whip Productions. One phone shares its internet connection over its Wi-Fi hotspot; another phone joins that Wi-Fi network normally and activates a receiving link.
 
-This is a new implementation. No source code, binaries, assets, package names or branded identifiers are imported from the previous application.
 
 ## 🎯 Product goals
 - One Share toggle and one Receive toggle.
@@ -18,9 +17,9 @@ This is a new implementation. No source code, binaries, assets, package names or
 
 ## 🧭 Current phase
 
-**Phase 1 — clean-room foundation and local-link prototype.** Includes app shell, independent controls, foreground services, a multi-client SOCKS5 listener and receiver-side gateway/endpoint health checks. It is not yet a complete internet tunnel; VPN packet forwarding is Phase 2.
+**Phase 1 — local-link prototype.** Includes app shell, independent controls, foreground services, a multi-client SOCKS5 listener and receiver-side gateway/endpoint health checks. It is not yet a complete internet tunnel; VPN packet forwarding is Phase 2.
 
-**Phase 1.1 — interaction polish.** Quick Settings taps operate silently in the background, tile long-press opens the app, notification tap opens the app, and app switches refresh when the user returns.
+**Phase 1.1 — interaction polish (released in v0.1.1).** Quick Settings taps operate silently in the background, tile long-press opens the app, notification tap opens the app, and app switches refresh when the user returns.
 
 ## 🏗️ Architecture and requirements
 - [Architecture](docs/ARCHITECTURE.md)
@@ -31,12 +30,12 @@ This is a new implementation. No source code, binaries, assets, package names or
 
 ## 📦 Latest test APK
 
-**v0.1.0 — Phase 1 prototype**
+**v0.1.1 — Phase 1.1 Interaction Polish**
 
-- [Download APK](https://github.com/pistolwhip-justin/Hotspot-Pistolwhip-d/releases/download/v0.1.0/Hotspot-Pistolwhipd-v0.1.0-debug.apk)
-- [GitHub Release notes](https://github.com/pistolwhip-justin/Hotspot-Pistolwhip-d/releases/tag/v0.1.0)
+- [Download APK](https://github.com/pistolwhip-justin/Hotspot-Pistolwhip-d/releases/download/v0.1.1/Hotspot-Pistolwhipd-v0.1.1-debug.apk)
+- [GitHub Release notes](https://github.com/pistolwhip-justin/Hotspot-Pistolwhip-d/releases/tag/v0.1.1)
 
-Debug-signed sideload build. This is a local-link prototype, not a complete internet tunnel. The v0.1.1 interaction changes are in development and are not yet part of this release.
+Debug-signed sideload build. This is a local-link test build, not a complete internet tunnel or production release.
 
 ## 🧪 Build
 Requires JDK 17 and Android SDK API 35. The GitHub Actions workflow creates the Gradle wrapper and runs unit tests plus the Android debug build.
@@ -66,4 +65,4 @@ Debug APKs are sideload test builds, not production/Play Store releases.
 Developed by **Pistol Whip Productions**. Final product naming, original artwork and distribution identity require Pistol Whip Productions approval.
 
 ---
-Last updated: 2026-11-24
+Last updated: 2026-11-25
