@@ -1,9 +1,9 @@
 # Decision record
 
-## D-001 — Clean-room implementation
+## D-001 — Standalone application structure
 - Date: 2026-11-24
-- Decision: Build from an empty repository with new Kotlin/Android implementation.
-- Rationale: User explicitly requested no reuse of the prior application's code and independent distribution identity.
+- Decision: Maintain a standalone Kotlin/Android application with project-owned source, identifiers and distribution identity.
+- Rationale: Keep implementation, branding and release ownership clear and maintainable.
 - Status: Accepted.
 
 ## D-002 — Normal Wi-Fi join replaces Wi-Fi Direct
