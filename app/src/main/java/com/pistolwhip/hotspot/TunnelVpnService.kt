@@ -144,7 +144,7 @@ class TunnelVpnService : VpnService() {
         private const val TUN_IPV4 = "198.18.0.1"
         private const val TUN_DNS = "198.18.0.2"
         private const val TUN_IPV6 = "fc00::1"
-        private const val TUN_IPV6_DNS = "2001:4860:4860::8888"
+        private const val TUN_IPV6_DNS = "2620:fe::fe"
 
         fun start(context: Context, gateway: String, network: Network) {
             val intent = Intent(context, TunnelVpnService::class.java)
