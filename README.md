@@ -1,6 +1,6 @@
 # 📡 Hotspot Pistolwhip'd
 
-![Android](https://img.shields.io/badge/platform-Android-3DDC84?logo=android&logoColor=white) ![Status](https://img.shields.io/badge/status-Phase%202%20implementation-orange)
+![Android](https://img.shields.io/badge/platform-Android-3DDC84?logo=android&logoColor=white) ![Status](https://img.shields.io/badge/status-Phase%202%20test%20build%20released-brightgreen)
 
 An Android hotspot-sharing companion from Pistol Whip Productions. One phone shares its connection over its Wi-Fi hotspot; another phone joins that Wi-Fi network normally and routes device traffic through the sharing phone.
 
@@ -22,9 +22,9 @@ An Android hotspot-sharing companion from Pistol Whip Productions. One phone sha
 
 **Phase 1.1 — interaction polish:** released as v0.1.1. The existing test APK was exercised and user feedback was received.
 
-**Phase 2 — device-wide VPN tunnel:** implementation is in progress on the Phase 2 development branch. It adds Android VpnService, the native TCP/UDP packet transport, SOCKS5 UDP relay support, DNS routing and VPN lifecycle handling. The code and build pipeline still need CI validation; no Phase 2 APK is being represented as ready until the build and tests pass.
+**Phase 2 — device-wide VPN tunnel:** v0.2.0 test APK is published. CI compilation, unit tests, native dependency checksums and APK assembly passed. The APK includes Android VpnService, native TCP/UDP packet transport, SOCKS5 UDP relay support, DNS routing and VPN lifecycle handling.
 
-The Phase 2 readiness gate is a two-device test proving that traffic from apps on the receiving phone reaches the internet through the sharing phone. A successful build alone does not satisfy that gate.
+The remaining readiness gate is physical two-device testing proving that traffic from apps on the receiving phone reaches the internet through the sharing phone. A successful build alone does not satisfy that gate.
 
 ## 🏗️ Architecture and decisions
 
@@ -39,12 +39,14 @@ The receiver uses [HevSocks5Tunnel](https://github.com/heiher/hev-socks5-tunnel)
 
 ## 📦 Latest published test APK
 
-**v0.1.1 — Phase 1.1 Interaction Polish**
+<badge>v0.2.0 — Phase 2 VPN Tunnel</badge>
 
-- [Download APK](https://github.com/pistolwhip-justin/Hotspot-Pistolwhip-d/releases/download/v0.1.1/Hotspot-Pistolwhipd-v0.1.1-debug.apk)
-- [GitHub Release notes](https://github.com/pistolwhip-justin/Hotspot-Pistolwhip-d/releases/tag/v0.1.1)
+- [Download APK](https://github.com/pistolwhip-justin/Hotspot-Pistolwhip-d/releases/download/v0.2.0/Hotspot-Pistolwhipd-v0.2.0-debug.apk)
+- [GitHub Release notes](https://github.com/pistolwhip-justin/Hotspot-Pistolwhip-d/releases/tag/v0.2.0)
 
-This published build is the local-link prototype. It does **not** contain the Phase 2 device-wide VPN tunnel. A new versioned release will be published only after the Phase 2 build and automated tests pass.
+This build contains the receiver-side Android VPN/TUN tunnel and TCP/UDP SOCKS5 transport. It is a debug-signed sideload test build. **Uninstall v0.1.1 before installing v0.2.0:** the CI debug certificate changed between builds, so Android will reject an in-place update.
+
+The earlier [v0.1.1 local-link prototype](https://github.com/pistolwhip-justin/Hotspot-Pistolwhip-d/releases/tag/v0.1.1) remains available for reference.
 
 ## 🧪 Build locally
 
@@ -74,8 +76,8 @@ The Receive service checks that the sharing endpoint can establish a SOCKS5 conn
 
 ## ⚠️ Known limitations and validation
 
-- Phase 2 CI build, native loading and automated test results are pending.
-- Physical two-device TCP/UDP/DNS routing has not yet been verified.
+- CI compilation, unit tests, native ABI checksum verification and APK assembly passed for v0.2.0.
+- Physical two-device TCP/UDP/DNS routing has not yet been verified; this APK is now ready for that test.
 - IPv6 behavior depends on the underlying hotspot and upstream internet connection supporting IPv6.
 - Android and Samsung control hotspot lifecycle, DHCP addresses and background execution.
 - The app does not silently enable Wi-Fi or change hotspot DHCP leases.
