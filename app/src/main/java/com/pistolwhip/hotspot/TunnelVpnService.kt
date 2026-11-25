@@ -3,6 +3,7 @@ package com.pistolwhip.hotspot
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.net.Network
 import android.net.VpnService
 import android.os.Build
 import android.os.ParcelFileDescriptor
@@ -22,6 +23,7 @@ class TunnelVpnService : VpnService() {
             return START_NOT_STICKY
         }
         val gateway = intent?.getStringExtra(EXTRA_GATEWAY)
+        val network = if (Build.VERSION.SDK_INT >= 29) intent?.getParcelableExtra(EXTRA_NETWORK, Network::class.java) else @Suppress("DEPRECATION") intent?.getParcelableExtra(EXTRA_NETWORK)
         if (gateway.isNullOrBlank()) {
             stopSelf()
             return START_NOT_STICKY
@@ -37,6 +39,7 @@ class TunnelVpnService : VpnService() {
         else startForeground(NOTIFICATION_ID, notification)
 
         try {
+            if (Build.VERSION.SDK_INT >= 22 && network != null) setUnderlyingNetworks(arrayOf(network))
             val builder = Builder()
                 .setSession("Hotspot Pistolwhip'd")
                 .setMtu(TUN_MTU)
@@ -119,6 +122,7 @@ class TunnelVpnService : VpnService() {
         const val ACTION_START = "com.pistolwhip.hotspot.vpn.START"
         const val ACTION_STOP = "com.pistolwhip.hotspot.vpn.STOP"
         const val EXTRA_GATEWAY = "gateway"
+        const val EXTRA_NETWORK = "underlying_network"
         const val NOTIFICATION_ID = 13
         private const val TUN_MTU = 1500
         private const val TUN_IPV4 = "198.18.0.1"
@@ -126,10 +130,11 @@ class TunnelVpnService : VpnService() {
         private const val TUN_IPV6 = "fc00::1"
         private const val TUN_IPV6_DNS = "2001:4860:4860::8888"
 
-        fun start(context: Context, gateway: String) {
+        fun start(context: Context, gateway: String, network: Network) {
             val intent = Intent(context, TunnelVpnService::class.java)
                 .setAction(ACTION_START)
                 .putExtra(EXTRA_GATEWAY, gateway)
+                .putExtra(EXTRA_NETWORK, network)
             if (Build.VERSION.SDK_INT >= 26) context.startForegroundService(intent) else context.startService(intent)
         }
     }
