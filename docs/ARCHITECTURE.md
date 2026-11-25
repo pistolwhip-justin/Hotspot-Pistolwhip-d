@@ -11,7 +11,7 @@
 - A network callback observes the active Wi-Fi network and link properties.
 - The gateway is derived from the active Wi-Fi route table; no fixed subnet is assumed.
 - Receiver probes the share endpoint and performs an upstream reachability check.
-- Phase 2 will add an independently sourced/implemented TUN-to-SOCKS transport and Android VpnService packet forwarding. Phase 1 must never represent a link check as a full internet tunnel.
+- Phase 2 will add an TUN-to-SOCKS transport and Android VpnService packet forwarding. Phase 1 must never represent a link check as a full internet tunnel.
 
 ### Multiple receivers
 Android/Samsung hotspot DHCP controls client addresses. A normal third-party app cannot reliably randomize DHCP leases. The server instead supports concurrent independent SOCKS5 sessions, supporting multiple receiver sessions.
