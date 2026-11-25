@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -90,12 +91,14 @@ private fun HotspotTheme(content: @Composable () -> Unit) {
 @Composable
 private fun Dashboard(initialShare: Boolean, initialReceive: Boolean, onShare: (Boolean) -> Unit, onReceive: (Boolean) -> Unit, onWifiSettings: () -> Unit) {
     val context = androidx.compose.ui.platform.LocalContext.current
-    var sharing by remember { mutableStateOf(initialShare) }
-    var receiving by remember { mutableStateOf(initialReceive) }
+    State.refresh(context)
+    val sharing by State.shareActive.collectAsState()
+    val receiving by State.receiveActive.collectAsState()
+    val shareHealthy by State.shareHealthy.collectAsState()
+    val receiveHealthy by State.receiveHealthy.collectAsState()
 
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
-        sharing = State.share(context)
-        receiving = State.receive(context)
+        State.refresh(context)
     }
 
     Surface(Modifier.fillMaxSize(), color = Color.Black) {
@@ -107,12 +110,10 @@ private fun Dashboard(initialShare: Boolean, initialReceive: Boolean, onShare: (
                 Text("Hotspot Pistolwhip'd", color = Color.White, fontSize = 27.sp, fontWeight = FontWeight.SemiBold)
                 Text("Share your connection. Join from another phone.", color = Color(0xffaaaaaa), fontSize = 12.sp)
             }
-            RoleCard("Share", "Make this phone's hotspot connection available to other devices.", sharing, "SOCKS5 · Port 1080") { value ->
-                sharing = value
+            RoleCard("Share", "Make this phone's hotspot connection available to other devices.", sharing, shareHealthy, "SOCKS5 · Port 1080") { value ->
                 onShare(value)
             }
-            RoleCard("Receive", "Connect to the sharing phone's Wi-Fi network first, then activate the tunnel.", receiving, "VPN · TCP + UDP") { value ->
-                receiving = value
+            RoleCard("Receive", "Connect to the sharing phone's Wi-Fi network first, then activate the tunnel.", receiving, receiveHealthy, "VPN · TCP + UDP") { value ->
                 onReceive(value)
             }
             if (!receiving) {
@@ -132,7 +133,7 @@ private fun Dashboard(initialShare: Boolean, initialReceive: Boolean, onShare: (
 }
 
 @Composable
-private fun RoleCard(title: String, description: String, checked: Boolean, detail: String, onChecked: (Boolean) -> Unit) {
+private fun RoleCard(title: String, description: String, checked: Boolean, healthy: Boolean, detail: String, onChecked: (Boolean) -> Unit) {
     Card(colors = CardDefaults.cardColors(containerColor = Color(0xff111111)), shape = RoundedCornerShape(22.dp), modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -145,9 +146,14 @@ private fun RoleCard(title: String, description: String, checked: Boolean, detai
             }
             HorizontalDivider(color = Color(0xff292929))
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                val color = if (checked) Color(0xff27c46b) else Color(0xffdf4747)
+                val color = if (checked && healthy) Color(0xff27c46b) else Color(0xffdf4747)
+                val status = when {
+                    !checked -> "INACTIVE"
+                    healthy -> "READY"
+                    else -> "WAITING"
+                }
                 Box(Modifier.size(7.dp).background(color, RoundedCornerShape(50)))
-                Text(if (checked) "ACTIVE" else "INACTIVE", color = color, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                Text(status, color = color, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                 Spacer(Modifier.weight(1f))
                 Text(detail, color = Color(0xff888888), fontSize = 10.sp)
             }
