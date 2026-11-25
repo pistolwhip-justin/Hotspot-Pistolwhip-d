@@ -54,9 +54,9 @@ Use two Android phones on the same test build.
 
 ## CI and device results
 
-- Phase 2 workflow: pending execution.
-- Phase 2 automated unit tests: pending execution.
-- Phase 2 native library checksum validation: pending execution.
-- Phase 2 APK assembly and release: pending execution.
-- Physical two-device TCP/UDP/DNS routing: not yet verified.
+- Phase 2 workflow: passed (run [45529698909](https://github.com/pistolwhip-justin/Hotspot-Pistolwhip-d/actions/runs/45529698909)).
+- Phase 2 automated unit tests: passed.
+- Phase 2 native library checksum validation: passed for all four Android ABIs.
+- Phase 2 APK assembly and release: passed; [v0.2.0 test APK](https://github.com/pistolwhip-justin/Hotspot-Pistolwhip-d/releases/tag/v0.2.0) published.
+- Physical two-device TCP/UDP/DNS routing: not yet verified; user testing is the next acceptance step.
 - Physical Samsung/One UI background, Quick Settings and notification behavior: not yet verified.
