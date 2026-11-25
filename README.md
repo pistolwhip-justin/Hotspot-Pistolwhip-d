@@ -2,7 +2,7 @@
 
 ![Android](https://img.shields.io/badge/platform-Android-3DDC84?logo=android&logoColor=white) ![Status](https://img.shields.io/badge/status-Phase%201.1%20test-orange)
 
-A Pistol Whip Productions Android hotspot-sharing companion from Pistol Whip Productions. One phone shares its internet connection over its Wi-Fi hotspot; another phone joins that Wi-Fi network normally and activates a receiving link.
+An Android hotspot-sharing companion from Pistol Whip Productions. One phone shares its internet connection over its Wi-Fi hotspot; another phone joins that Wi-Fi network normally and activates a receiving link.
 
 
 ## 🎯 Product goals
