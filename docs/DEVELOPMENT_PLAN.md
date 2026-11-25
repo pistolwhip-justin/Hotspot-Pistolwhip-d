@@ -1,8 +1,8 @@
 # Development plan
 
-## Phase 1 — clean-room foundation and local-link prototype
+## Phase 1 — local-link prototype
 
-**Status: CI build and unit tests passed; v0.1.0 test APK published. Physical two-device acceptance remains pending.**
+**Status: CI build and unit tests passed; v0.1.1 test APK published. Physical two-device acceptance remains pending.**
 
 Deliver app shell, true-black Material 3 UI, independent Share/Receive toggles, foreground lifecycle, multi-client SOCKS5 listener, receiver Wi-Fi gateway discovery/endpoint probe, initial Quick Settings tiles and build/release automation.
 
@@ -10,7 +10,7 @@ Gate: CI build and automated tests pass; APK is published on a versioned GitHub 
 
 ## Phase 1.1 — mass-testing interaction and lifecycle polish
 
-**Status: In development.**
+**Status: v0.1.1 published; physical acceptance pending.**
 
 - Quick Settings tile taps toggle only their matching service. They must not open, foreground, or otherwise bring the Activity to the front.
 - Long-pressing either tile opens the app using Android's tile settings-activity affordance.
@@ -23,7 +23,7 @@ Gate: automated build/tests pass; tile and notification interactions are exercis
 
 ## Phase 2 — complete traffic tunnel
 
-Deliver Android VpnService integration and independently sourced/implemented TUN-to-SOCKS transport supporting TCP/UDP, routing, DNS, reconnects, failure behavior and traffic tests.
+Deliver Android VpnService integration and TUN-to-SOCKS transport supporting TCP/UDP, routing, DNS, reconnects, failure behavior and traffic tests.
 
 Gate: two-device test proves receiver traffic reaches the internet through the sharing phone.
 
