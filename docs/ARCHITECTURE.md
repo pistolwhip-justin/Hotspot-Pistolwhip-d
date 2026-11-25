@@ -1,11 +1,6 @@
-# Architecture — clean-room design
+# Architecture
 
-## Historical mechanics summary (behavioral reference only)
-The previous application used a two-phone arrangement: the sharing phone exposed a SOCKS5 server on its hotspot LAN; the receiving phone joined the hotspot and started an Android VPN service; a TUN-to-SOCKS component forwarded receiver traffic to the server, with TCP and UDP paths. It also had connectivity checks and an optional Wi-Fi Direct route.
-
-This is a description of required behavior only. No previous source files or implementation are reused.
-
-## New architecture
+## Architecture overview
 ### Share role
 - Foreground service owns a multi-client SOCKS5 listener on the hotspot-facing interfaces.
 - Each accepted client has its own session; there is no single-client global slot.
@@ -19,7 +14,7 @@ This is a description of required behavior only. No previous source files or imp
 - Phase 2 will add an independently sourced/implemented TUN-to-SOCKS transport and Android VpnService packet forwarding. Phase 1 must never represent a link check as a full internet tunnel.
 
 ### Multiple receivers
-Android/Samsung hotspot DHCP controls client addresses. A normal third-party app cannot reliably randomize DHCP leases. The server instead supports concurrent independent SOCKS5 sessions, removing the old single-receiver server limitation.
+Android/Samsung hotspot DHCP controls client addresses. A normal third-party app cannot reliably randomize DHCP leases. The server instead supports concurrent independent SOCKS5 sessions, supporting multiple receiver sessions.
 
 ### Lifecycle and tiles
 Share and Receive are independent foreground services. Stop changes only that role and must never finish the Activity. Two Quick Settings tiles invoke the same actions. Android's tile UI affordances are used for long-press navigation; arbitrary long-press callbacks are not assumed.
