@@ -32,8 +32,6 @@ class MainActivity : ComponentActivity() {
         setContent {
             HotspotTheme {
                 Dashboard(
-                    initialShare = State.share(this),
-                    initialReceive = State.receive(this),
                     onShare = { enabled -> serviceToggle(ShareService::class.java, ShareService.ACTION_STOP, enabled) },
                     onReceive = { enabled -> receiveToggle(enabled) },
                     onWifiSettings = { startActivity(Intent(Settings.ACTION_WIFI_SETTINGS)) }
@@ -89,9 +87,9 @@ private fun HotspotTheme(content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun Dashboard(initialShare: Boolean, initialReceive: Boolean, onShare: (Boolean) -> Unit, onReceive: (Boolean) -> Unit, onWifiSettings: () -> Unit) {
+private fun Dashboard(onShare: (Boolean) -> Unit, onReceive: (Boolean) -> Unit, onWifiSettings: () -> Unit) {
     val context = androidx.compose.ui.platform.LocalContext.current
-    State.refresh(context)
+    LaunchedEffect(context) { State.refresh(context) }
     val sharing by State.shareActive.collectAsState()
     val receiving by State.receiveActive.collectAsState()
     val shareHealthy by State.shareHealthy.collectAsState()
