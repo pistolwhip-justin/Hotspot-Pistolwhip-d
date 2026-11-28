@@ -10,7 +10,7 @@ A standalone Android app from Pistol Whip Productions for sharing one phone's in
 - A fresh session passphrase is generated and shown only after group creation and the SOCKS endpoint are ready.
 - The Share SOCKS5 TCP/UDP listener binds to the group-owner P2P interface.
 - Credentials can be copied, displayed as a standard Wi-Fi QR code, or sent through Android's Sharesheet. No destination app list is hard-coded; Android offers compatible installed apps and the user chooses.
-- Receive can scan the Share QR code or accept manual SSID/password entry. Android owns network approval and association.
+- Receive can scan the Share QR code or accept manual SSID/password entry. Android owns network approval and association. The request is local-only; devices without concurrent local-only Wi-Fi support may need the system Wi-Fi settings fallback.
 - After the expected group and Share endpoint are verified, Receive requests Android VPN consent and starts the native TUN-to-SOCKS5 tunnel.
 - The receiver tunnel supports TCP, UDP, DNS and IPv4/IPv6 routing as the underlying network permits.
 - One Share toggle and one Receive toggle remain independent. Quick Settings tile taps toggle only their role; long-press and persistent notification taps open the app.
@@ -63,7 +63,7 @@ GitHub Actions runs the dependency checksum checks, unit tests and APK assembly 
 
 ## ⚠️ Limitations
 
-- Android/Samsung owns Wi-Fi Direct group formation, network association, Wi-Fi settings and background execution.
+- Android/Samsung owns Wi-Fi Direct group formation, network association, Wi-Fi settings and background execution. Receiver association depends on device support for a secondary local-only Wi-Fi connection; Android may reject the app-assisted request on some devices, in which case use the system Wi-Fi settings fallback.
 - Android 10+ is required for the custom group SSID and app-assisted association.
 - Physical two-device TCP/UDP/DNS forwarding, IPv6 and long-duration Samsung behavior must be validated separately from CI.
 - No kill switch is implemented; if the VPN service exits, Android may restore normal routing.
