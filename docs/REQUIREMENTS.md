@@ -25,7 +25,7 @@ The authoritative Wi-Fi Direct behavior is described in [WIFI_DIRECT_SPEC.md](WI
 ## Phase 2 — Receive and tunnel
 
 15. Receive detects and validates an already-connected `DIRECT-WHIP-` network, or offers QR scanning and manual credential entry.
-16. The app hands user-selected SSID/password to Android's supported Wi-Fi association request. Android owns connection approval and association; the app does not enumerate or silently select saved networks.
+16. The app hands user-selected SSID/password to Android through a local-only WifiNetworkSpecifier request (the request removes INTERNET capability). Android owns connection approval and association; the app does not enumerate or silently select saved networks. Devices without supported local-only STA concurrency may reject the request; provide the Android Wi-Fi settings fallback.
 17. Receive must not establish a VPN while the user is still entering credentials or before the expected Wi-Fi Direct network and Share endpoint are verified.
 18. Android VpnService consent is explicit. The VPN interface is established before the native tunnel starts.
 19. The receiver tunnel forwards TCP and UDP through the Share SOCKS5 endpoint and routes IPv4, IPv6 and DNS as supported by the selected network.
