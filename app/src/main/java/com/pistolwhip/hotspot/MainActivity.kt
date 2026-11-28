@@ -101,6 +101,8 @@ class MainActivity : ComponentActivity() {
                     onScan = { scanWifiQr() },
                     onDismissCredentials = {
                         showCredentialDialog = false
+                        stopService(Intent(this, ReceiveService::class.java))
+                        stopService(Intent(this, TunnelVpnService::class.java))
                         State.setReceive(this, false)
                     },
                     onWifiSettings = { startActivity(Intent(Settings.ACTION_WIFI_SETTINGS)) }
