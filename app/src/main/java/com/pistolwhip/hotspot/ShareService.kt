@@ -6,9 +6,11 @@ import android.os.IBinder
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
 import java.io.EOFException
+import java.io.IOException
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
+import java.net.Inet4Address
 import java.net.InetSocketAddress
 import java.net.NetworkInterface
 import java.net.ServerSocket
@@ -23,22 +25,57 @@ class ShareService : Service() {
     private val clients = Executors.newCachedThreadPool()
     private val activeClients = ConcurrentHashMap.newKeySet<Socket>()
     @Volatile private var server: ServerSocket? = null
+    @Volatile private var wifiDirectGroup: WifiDirectGroup? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == ACTION_STOP) { stopSelf(); return START_NOT_STICKY }
-        startForeground(11, Notifications.build(this, "Sharing service", "SOCKS5 TCP/UDP endpoint listening on port $PORT"))
-        if (running.compareAndSet(false, true)) clients.execute { listen() }
+        if (intent?.action == ACTION_STOP) {
+            running.set(false)
+            try { server?.close() } catch (_: Exception) { }
+            wifiDirectGroup?.remove()
+            stopSelf()
+            return START_NOT_STICKY
+        }
+        startForeground(11, Notifications.build(this, "Sharing service", "Creating Wi-Fi Direct group"))
+        if (running.compareAndSet(false, true)) {
+            val group = WifiDirectGroup(this)
+            wifiDirectGroup = group
+            group.create(
+                onReady = { credentials ->
+                    clients.execute { listen(credentials) }
+                },
+                onError = { message ->
+                    State.setShare(this, false)
+                    State.setShareHealthy(this, false)
+                    State.clearShareCredentials()
+                    (getSystemService(android.app.NotificationManager::class.java))
+                        .notify(11, Notifications.build(this, "Sharing service", message, false))
+                    group.remove()
+                    stopForeground(STOP_FOREGROUND_REMOVE)
+                    stopSelf()
+                }
+            )
+        }
         return START_STICKY
     }
 
-    private fun listen() {
+    private fun listen(credentials: WifiDirectGroup.Credentials) {
         try {
-            ServerSocket(PORT, 50).use { socket ->
-                server = socket
+            val p2pAddress = waitForP2pAddress()
+                ?: throw IOException("Wi-Fi Direct group-owner interface did not receive an IPv4 address")
+            val socket = ServerSocket().apply {
+                reuseAddress = true
+                bind(InetSocketAddress(p2pAddress, PORT), 50)
+            }
+            socket.use {
+                server = it
+                State.setShareCredentials(credentials.ssid, credentials.passphrase)
+                State.setShareAddress(p2pAddress.hostAddress ?: "")
                 State.setShare(this, true)
                 State.setShareHealthy(this, true)
+                (getSystemService(android.app.NotificationManager::class.java))
+                    .notify(11, Notifications.build(this, "Sharing service", "Wi-Fi Direct group and SOCKS endpoint ready", true))
                 while (running.get()) {
-                    val client = socket.accept()
+                    val client = it.accept()
                     activeClients.add(client)
                     clients.execute {
                         try { handleClient(client) }
@@ -46,8 +83,12 @@ class ShareService : Service() {
                     }
                 }
             }
-        } catch (_: Exception) {
-            // Closing the listener is expected during an explicit stop.
+        } catch (error: Exception) {
+            if (running.get()) {
+                State.setShareHealthy(this, false)
+                (getSystemService(android.app.NotificationManager::class.java))
+                    .notify(11, Notifications.build(this, "Sharing service unavailable", error.message ?: "Could not bind the Wi-Fi Direct endpoint"))
+            }
         } finally {
             server = null
             running.set(false)
@@ -56,6 +97,35 @@ class ShareService : Service() {
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
         }
+    }
+
+    private fun waitForP2pAddress(): Inet4Address? {
+        repeat(30) {
+            findP2pAddress()?.let { return it }
+            if (!running.get()) return null
+            try { Thread.sleep(500) } catch (_: InterruptedException) {
+                Thread.currentThread().interrupt()
+                return null
+            }
+        }
+        return null
+    }
+
+    private fun findP2pAddress(): Inet4Address? {
+        val interfaces = try { NetworkInterface.getNetworkInterfaces() } catch (_: Exception) { null } ?: return null
+        while (interfaces.hasMoreElements()) {
+            val networkInterface = interfaces.nextElement()
+            if (!networkInterface.name.lowercase().contains("p2p")) continue
+            try {
+                if (!networkInterface.isUp || networkInterface.isLoopback) continue
+                val addresses = networkInterface.inetAddresses
+                while (addresses.hasMoreElements()) {
+                    val address = addresses.nextElement()
+                    if (address is Inet4Address && address.isSiteLocalAddress && !address.isLoopbackAddress) return address
+                }
+            } catch (_: Exception) { }
+        }
+        return null
     }
 
     private fun readExact(input: java.io.InputStream, length: Int): ByteArray {
@@ -231,6 +301,8 @@ class ShareService : Service() {
         activeClients.clear()
         State.setShare(this, false)
         State.setShareHealthy(this, false)
+        wifiDirectGroup?.remove()
+        wifiDirectGroup = null
         clients.shutdownNow()
         super.onDestroy()
     }

@@ -1,56 +1,57 @@
 # 📡 Hotspot Pistolwhip'd
 
-![Android](https://img.shields.io/badge/platform-Android-3DDC84?logo=android&logoColor=white) ![Status](https://img.shields.io/badge/status-Phase%202%20test%20build%20released-brightgreen)
+![Android](https://img.shields.io/badge/platform-Android-3DDC84?logo=android&logoColor=white) ![Status](https://img.shields.io/badge/status-Phase%201%20%26%202%20CI%20validated-orange)
 
-An Android hotspot-sharing companion from Pistol Whip Productions. One phone shares its connection over its Wi-Fi hotspot; another phone joins that Wi-Fi network normally and routes device traffic through the sharing phone.
+A standalone Android app from Pistol Whip Productions for sharing one phone's internet connection with nearby phones over a direct Wi-Fi Direct group—without using Android's conventional Hotspot/tethering transport.
 
-## 🎯 What it does
+## 🎯 Phase 1 & 2
 
-- One **Share** toggle and one **Receive** toggle.
-- Share phone hosts a multi-client SOCKS5 service on the private hotspot LAN.
-- Receive phone joins through normal Android Wi-Fi settings, discovers the gateway and requests Android's VPN permission.
-- Android VpnService captures receiver traffic and a native TUN-to-SOCKS5 engine forwards TCP and UDP through the Share phone.
-- IPv4, IPv6 and DNS routing are configured for the receiver tunnel.
-- Share supports SOCKS5 TCP CONNECT and UDP ASSOCIATE sessions.
-- Separate Share and Receive Quick Settings tiles use the app mark; tapping a tile toggles its service without opening the app.
-- Long-pressing a tile or tapping the persistent service notification opens the app.
-- The compact, scrollable AMOLED-black dashboard uses system-scaled text, Material 3 dynamic accents and One UI-friendly spacing.
-- Multiple receiver sessions are supported; Android/Samsung hotspot DHCP remains responsible for client IP allocation.
-- No root, Wi-Fi Direct, cloud relay, traffic inspection or AI service is required. AI remains deferred.
+- Share creates a Wi-Fi Direct group using the exact SSID format **DIRECT-WHIP-[phonename]**.
+- A fresh session passphrase is generated and shown only after group creation and the SOCKS endpoint are ready.
+- The Share SOCKS5 TCP/UDP listener binds to the group-owner P2P interface.
+- Credentials can be copied, displayed as a standard Wi-Fi QR code, or sent through Android's Sharesheet. No destination app list is hard-coded; Android offers compatible installed apps and the user chooses.
+- Receive can scan the Share QR code or accept manual SSID/password entry. Android owns network approval and association. The request is local-only; devices without concurrent local-only Wi-Fi support may need the system Wi-Fi settings fallback.
+- After the expected group and Share endpoint are verified, Receive requests Android VPN consent and starts the native TUN-to-SOCKS5 tunnel.
+- The receiver tunnel supports TCP, UDP, DNS and IPv4/IPv6 routing as the underlying network permits.
+- One Share toggle and one Receive toggle remain independent. Quick Settings tile taps toggle only their role; long-press and persistent notification taps open the app.
+- True-black AMOLED UI, system-scaled typography and Material 3 dynamic accents.
 
-## 🧭 Current development status
+## 📦 Phase 1 & 2 test APK
 
-**Phase 1.1 — interaction polish:** released as v0.1.1. The existing test APK was exercised and user feedback was received.
+**v0.3.0 — Wi-Fi Direct Share + Receive**
 
-**Phase 2 — device-wide VPN tunnel:** v0.2.0 test APK is published. CI compilation, unit tests, native dependency checksums and APK assembly passed. The APK includes Android VpnService, native TCP/UDP packet transport, SOCKS5 UDP relay support, DNS routing and VPN lifecycle handling.
+- [GitHub Release page](https://github.com/pistolwhip-justin/Hotspot-Pistolwhip-d/releases/tag/v0.3.0)
+- [Direct APK asset](https://github.com/pistolwhip-justin/Hotspot-Pistolwhip-d/releases/download/v0.3.0/Hotspot-Pistolwhipd-v0.3.0-debug.apk)
 
-The remaining readiness gate is physical two-device testing proving that traffic from apps on the receiving phone reaches the internet through the sharing phone. A successful build alone does not satisfy that gate.
+This is a debug-signed sideload test APK, not a production or Play Store release. If Android refuses to update an older build because its debug signing certificate differs, uninstall the previous test build and install v0.3.0.
 
-## 🏗️ Architecture and decisions
+## 📱 Test on two Android phones
 
-- [Architecture](docs/ARCHITECTURE.md)
+1. Install the same v0.3.0 APK on both phones.
+2. On phone A, turn Share on. Confirm the displayed network name is exactly DIRECT-WHIP-[phonename] and the conventional Android Hotspot was not enabled by the app.
+3. Use the displayed QR code or Android Sharesheet to send only the SSID/password to phone B.
+4. On phone B, turn Receive on, scan the QR or enter the credentials, and approve Android's Wi-Fi connection prompt.
+5. Approve Android's VPN permission when asked.
+6. Verify TCP web traffic, DNS and UDP-dependent apps through phone A. Check IPv6 when the group/upstream network supports it.
+7. Test disconnect/reconnect, stopping Share, stopping Receive, multiple receiver devices, screen-off/background behavior and Samsung/One UI restrictions.
+
+A green health indicator confirms the app's endpoint and tunnel checks; it does not replace testing real traffic from ordinary apps. Physical two-device acceptance remains a user/device test.
+
+## 🏗️ Architecture and project docs
+
+- [Wi-Fi Direct product specification](docs/WIFI_DIRECT_SPEC.md)
 - [Requirements](docs/REQUIREMENTS.md)
 - [Development plan](docs/DEVELOPMENT_PLAN.md)
+- [Architecture](docs/ARCHITECTURE.md)
 - [Decision record](docs/DECISIONS.md)
 - [Test plan](docs/TEST_PLAN.md)
 - [Third-party notices](THIRD_PARTY_NOTICES.md)
 
-The receiver uses [HevSocks5Tunnel](https://github.com/heiher/hev-socks5-tunnel) 2.20.0 (MIT) for the native TUN-to-SOCKS5 data plane. The four Android ABI libraries are downloaded by the build script and SHA-256 verified before packaging; they are not stored as opaque binaries in this repository.
+The receiver uses [HevSocks5Tunnel](https://github.com/heiher/hev-socks5-tunnel) 2.20.0 (MIT), with native ABI libraries fetched and SHA-256 verified during CI. QR generation/scanning uses ZXing and JourneyApps Android Embedded; see third-party notices.
 
-## 📦 Latest published test APK
+## 🛠️ Build from source
 
-**v0.2.0 — Phase 2 VPN Tunnel**
-
-- [Download APK](https://github.com/pistolwhip-justin/Hotspot-Pistolwhip-d/releases/download/v0.2.0/Hotspot-Pistolwhipd-v0.2.0-debug.apk)
-- [GitHub Release notes](https://github.com/pistolwhip-justin/Hotspot-Pistolwhip-d/releases/tag/v0.2.0)
-
-This build contains the receiver-side Android VPN/TUN tunnel and TCP/UDP SOCKS5 transport. It is a debug-signed sideload test build. **Uninstall v0.1.1 before installing v0.2.0:** the CI debug certificate changed between builds, so Android will reject an in-place update.
-
-The earlier [v0.1.1 local-link prototype](https://github.com/pistolwhip-justin/Hotspot-Pistolwhip-d/releases/tag/v0.1.1) remains available for reference.
-
-## 🧪 Build locally
-
-Requires JDK 17, Android SDK API 35 and Gradle 8.9. The native libraries are pinned to HevSocks5Tunnel 2.20.0 and verified by SHA-256.
+Requires JDK 17, Android SDK API 35 and Gradle 8.9.
 
 ~~~bash
 bash scripts/fetch-native-libs.sh
@@ -58,31 +59,16 @@ gradle wrapper --gradle-version 8.9 --gradle-distribution-sha256-sum=d725d707bfa
 ./gradlew --no-daemon testDebugUnitTest assembleDebug
 ~~~
 
-The native dependency script supports arm64-v8a, armeabi-v7a, x86 and x86_64. GitHub Actions runs the same fetch, checksum, test and APK assembly steps from committed source.
+GitHub Actions runs the dependency checksum checks, unit tests and APK assembly from committed source.
 
-Debug APKs are sideload test builds, not production or Play Store releases.
+## ⚠️ Limitations
 
-## 📱 How to test the Phase 2 build
-
-1. Install the same Phase 2 APK on two Android phones.
-2. On the sharing phone, enable its Android Wi-Fi hotspot in system settings and turn on **Share**.
-3. On the receiving phone, join that hotspot as an ordinary Wi-Fi network.
-4. Turn on **Receive** and approve Android's VPN permission when prompted.
-5. Confirm the **Receive VPN** notification reports that the tunnel is active.
-6. Browse from multiple apps on the receiving phone. Verify IPv4, IPv6 where available, DNS, TCP sites and UDP-dependent traffic.
-7. Repeat with multiple receiver devices and test Wi-Fi disconnect/reconnect and Share stop/restart.
-
-The Receive service checks that the sharing endpoint can establish a SOCKS5 connection to an external TCP endpoint before starting the VPN. A green service notification also requires the native tunnel engine to report that it is running. This health check is useful evidence, but the actual device-wide traffic test remains a physical-device acceptance check.
-
-## ⚠️ Known limitations and validation
-
-- CI compilation, unit tests, native ABI checksum verification and APK assembly passed for v0.2.0.
-- Physical two-device TCP/UDP/DNS routing has not yet been verified; this APK is now ready for that test.
-- IPv6 behavior depends on the underlying hotspot and upstream internet connection supporting IPv6.
-- Android and Samsung control hotspot lifecycle, DHCP addresses and background execution.
-- The app does not silently enable Wi-Fi or change hotspot DHCP leases.
-- A debug-signed APK is for sideload testing only.
-- No AI features are included in the current scope.
+- Android/Samsung owns Wi-Fi Direct group formation, network association, Wi-Fi settings and background execution. Receiver association depends on device support for a secondary local-only Wi-Fi connection; Android may reject the app-assisted request on some devices, in which case use the system Wi-Fi settings fallback.
+- Android 10+ is required for the custom group SSID and app-assisted association.
+- Physical two-device TCP/UDP/DNS forwarding, IPv6 and long-duration Samsung behavior must be validated separately from CI.
+- No kill switch is implemented; if the VPN service exits, Android may restore normal routing.
+- Detailed verbose radio statistics and automatic recovery/log-sharing are deferred to a later phase.
+- AI, cloud relay, remote VPN server and traffic inspection are not part of the approved scope.
 
 ## 🏢 Project
 
@@ -90,4 +76,4 @@ Developed by **Pistol Whip Productions**.
 
 ---
 
-Last updated: 2026-11-25
+Last updated: 2026-11-28

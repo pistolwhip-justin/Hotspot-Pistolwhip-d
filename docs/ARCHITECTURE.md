@@ -1,65 +1,65 @@
 # Architecture
 
-## System overview
+## Product topology
 
-The product has two independent roles:
+The app uses a direct Wi-Fi Direct group:
 
-- **Share:** hosts a SOCKS5 proxy on the Wi-Fi hotspot's private LAN.
-- **Receive:** joins that hotspot, establishes an Android VPN interface and forwards device traffic to the Share endpoint.
+- **Share:** creates the group-owner network and hosts a multi-client SOCKS5 endpoint on the P2P interface.
+- **Receive:** associates with that network through Android's user-approved Wi-Fi connection flow, establishes Android VpnService, and forwards device traffic to Share.
 
-The receiver's normal Wi-Fi association is managed by Android. Wi-Fi Direct is not part of the connection flow.
+Android's conventional Hotspot/tethering API is not used as the Share transport. The required SSID is exactly `DIRECT-WHIP-[phonename]`; see [WIFI_DIRECT_SPEC.md](WIFI_DIRECT_SPEC.md).
 
 ## Share role
 
-- A foreground Android service owns a multi-client SOCKS5 listener on TCP port 1080.
-- TCP CONNECT requests create independent outbound TCP sockets.
-- UDP ASSOCIATE requests create independent UDP relay sockets. The relay parses and emits RFC 1928 UDP datagrams, supports IPv4, IPv6 and domain-name destinations, and pins each association to the receiver address that opened its TCP control channel.
-- Multiple TCP sessions and UDP associations can run concurrently.
-- Each accepted TCP peer is checked against the subnet of the local receiving interface; peers from unrelated interface subnets are rejected.
-- Hotspot lifecycle and DHCP address assignment remain under Android/Samsung controls. The app does not attempt to set or randomize DHCP leases.
-- The endpoint is unauthenticated and is intended to be reachable only from the private hotspot network. Do not expose this listener to untrusted networks.
+1. `WifiDirectGroup` requests a Wi-Fi Direct group using Android's `WifiP2pManager` and `WifiP2pConfig.Builder`.
+2. The group SSID and passphrase are retrieved from Android's group information and validated against the requested value and credential policy.
+3. `ShareService` waits for an IPv4 address on the group-owner P2P interface.
+4. The SOCKS5 server binds directly to that P2P address and port 1080; accepted clients are additionally checked against the interface subnet.
+5. Share health turns green only after the listener binds and starts accepting connections.
+6. Credentials are held in process memory for the active Share session and cleared when Share stops.
+7. The Share panel offers copy, a standard Wi-Fi QR code and Android Sharesheet. The share text contains only the SSID and password.
 
-## Receive role and VPN lifecycle
+No credentials, phone number, hardware identifier or diagnostic data are included in the transfer payload or written to logs.
 
-1. The user joins the sharing phone's hotspot through Android Wi-Fi settings.
-2. Receive observes Wi-Fi networks and obtains the active network's default gateway from LinkProperties.
-3. The service opens a SOCKS5 session to the gateway and issues a TCP CONNECT probe to an external host. This verifies that the Share endpoint can reach an upstream destination.
-4. Android's VPN consent is requested through VpnService.prepare() before starting the device-wide tunnel.
-5. TunnelVpnService creates a TUN interface using Android's VpnService.Builder, configures IPv4 and IPv6 routes and DNS, and binds the VPN's underlying network to the selected Wi-Fi network.
-6. The application package is excluded from its own VPN so its native SOCKS transport can reach the sharing phone without routing back into the TUN interface.
-7. HevSocks5Tunnel converts TUN IP packets into SOCKS5 TCP CONNECT and UDP ASSOCIATE flows to the Share phone.
-8. The native engine and tunnel file descriptor are stopped and closed when the user stops Receive, Android revokes VPN consent, or the underlying Wi-Fi network is lost.
+## Receive association
 
-## TUN-to-SOCKS engine
+1. The user may choose a matching already-connected `DIRECT-WHIP-` network, or scan the Share QR code / enter its SSID and password.
+2. The app validates the expected SSID prefix and passphrase policy.
+3. The app passes the user's selection to Android through `WifiNetworkSpecifier`. The request removes `NET_CAPABILITY_INTERNET` because the P2P group is a local-only network; Android owns system approval and association, and the app does not enumerate or silently select saved networks.
+4. Android may satisfy the request as a secondary local-only Wi-Fi connection when the device supports STA concurrency. Unsupported device/OEM combinations may return `onUnavailable`; the app reports this and offers the system Wi-Fi settings fallback.
+5. A network callback provides the associated `Network`. The service checks that the network is Wi-Fi and matches the expected SSID.
+6. The service obtains the group-owner gateway from Android's `LinkProperties` where available, then performs a SOCKS5 TCP CONNECT probe over the selected network.
+7. If the endpoint is unavailable, Receive remains unhealthy and the VPN is not started.
 
-The receiver uses HevSocks5Tunnel 2.20.0, an MIT-licensed native engine:
+## VPN and TUN-to-SOCKS data plane
 
-- Upstream: https://github.com/heiher/hev-socks5-tunnel
-- Pinned version: 2.20.0
-- Native entry point: the bundled JNI contract in package hev.htproxy, class TProxyService.
-- Data plane: Android TUN file descriptor -> native tun2socks -> SOCKS5 endpoint on the Share phone.
-- UDP mode: standard SOCKS5 UDP ASSOCIATE.
-- DNS: the VPN advertises a virtual IPv4 DNS address and the native engine's mapped-DNS feature preserves domain routing through the SOCKS endpoint.
-- ABI coverage: arm64-v8a, armeabi-v7a, x86 and x86_64.
+1. The user grants Android VpnService consent.
+2. After expected network association and endpoint validation, `TunnelVpnService` establishes a TUN interface and binds the VPN's underlying network to the selected Wi-Fi network.
+3. The app's own UID is excluded from its VPN to prevent the native SOCKS transport from recursively entering the TUN.
+4. HevSocks5Tunnel 2.20.0 (MIT) converts TUN packets to SOCKS5 TCP CONNECT and UDP ASSOCIATE flows to the Share endpoint.
+5. The tunnel config routes IPv4/IPv6 default traffic and DNS through the native engine. IPv6 remains dependent on the network's support.
+6. The tunnel stops when Receive is stopped, the underlying network is lost, VPN consent is revoked, or the native engine fails.
 
-The ABI libraries are fetched from the pinned upstream release by scripts/fetch-native-libs.sh. The script verifies each SHA-256 before placing the library in the Android jniLibs source set. The binaries are not committed to the project repository. See THIRD_PARTY_NOTICES.md.
+Native ABI libraries for arm64-v8a, armeabi-v7a, x86 and x86_64 are fetched from the pinned upstream release and SHA-256 verified by `scripts/fetch-native-libs.sh`. They are not committed as opaque binary assets. See [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).
 
-## Routing and health reporting
+## Layered health reporting
 
-- The VPN includes default IPv4 and IPv6 routes. IPv6 behavior still depends on the hotspot and upstream network supporting IPv6.
-- DNS is configured on the VPN interface; DNS packets are forwarded by the native tunnel rather than sent directly by the receiver's ordinary app sockets.
-- The app's own package is excluded from the VPN to prevent proxy recursion. Its explicit SOCKS upstream probe uses the selected Wi-Fi Network socket factory.
-- A green Receive notification requires a successful upstream SOCKS CONNECT probe and the native tunnel runtime to report that it is running.
-- This health indicator is not a substitute for testing traffic from other application UIDs. End-to-end device-wide routing, DNS, IPv6 and UDP behavior must be verified on physical devices.
+The app distinguishes:
 
-## Lifecycle and Quick Settings
+1. Share service started.
+2. Wi-Fi Direct group confirmed.
+3. SOCKS5 listener bound to the P2P interface.
+4. Receive associated with the expected group.
+5. Share endpoint/upstream probe passed.
+6. VPN interface established.
+7. Native tunnel engine running.
 
-Share and Receive are independent foreground services. Stopping one role must not close the Activity or stop the other role. Quick Settings tile taps toggle only their respective services; tile long-press and persistent notification taps open the app.
+A green service indicator is not a guarantee that arbitrary app traffic has been verified on a physical device. TCP, UDP, DNS and IPv6 acceptance remain device tests.
 
-## Security and privacy boundaries
+## Platform and privacy boundaries
 
-- No cloud relay or third-party VPN server is part of the architecture.
-- No TLS interception or certificate installation is performed.
-- No browsing history, credentials or traffic payloads are intentionally logged or uploaded.
-- The local SOCKS5 endpoint uses no authentication in this test phase; keep it limited to the private hotspot LAN.
-- The native dependency is MIT licensed and pinned with checksum verification.
+- Android/Samsung owns group formation, network association, Wi-Fi settings, DHCP/IP assignment and background policy.
+- Android 10+ is required for the custom group SSID and app-assisted local Wi-Fi request.
+- The Share SOCKS endpoint is unauthenticated and is intended only for the private Wi-Fi Direct group. It binds to the P2P interface and checks peer subnet.
+- No cloud relay, remote VPN server, TLS interception, traffic inspection, browsing-history collection, automatic log upload or AI service is part of this phase.
+- No kill switch is implemented; if the VPN exits, Android may restore normal routing.

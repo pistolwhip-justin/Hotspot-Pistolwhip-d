@@ -1,57 +1,58 @@
 # Product requirements
 
-## Confirmed product requirements
+The authoritative Wi-Fi Direct behavior is described in [WIFI_DIRECT_SPEC.md](WIFI_DIRECT_SPEC.md). These requirements define the current Phase 1 and Phase 2 test release.
 
-1. Share phone exposes its internet connection through its Wi-Fi hotspot.
-2. Receiver joins the hotspot as an ordinary Wi-Fi network; Wi-Fi Direct is not required.
-3. Exactly one Share toggle and one Receive toggle control independent roles.
-4. Stopping either role must not close the UI or stop the other role.
-5. Multiple receiver devices and independent proxy sessions are supported concurrently. Android hotspot DHCP controls client IP allocation; the app must not claim to randomize DHCP leases.
-6. If Wi-Fi is off or the expected hotspot is unavailable, guide the user to Android Wi-Fi settings and report the failure. Do not claim the app can silently enable Wi-Fi on every supported Android version.
-7. Interface: true-black AMOLED, system-scaled Roboto/system typography, Material 3 dynamic accents, Samsung/One UI-inspired spacing and a scrollable layout for smaller or multi-window screens.
-8. First Receive activation is manual and requires Android's VpnService consent. Future auto-start is opt-in and deferred.
-9. Persistent service notifications remain available. The Receive health indicator stays red until the SOCKS endpoint can reach an upstream destination and the native VPN tunnel reports running; it is green only when both checks pass.
-10. Share health is green only after the SOCKS listener successfully binds and starts accepting connections.
-11. Unexpected Android service termination should prompt restart where reliably detectable; force-stop and OEM behavior are documented limitations.
-12. Separate Quick Settings tiles for Share and Receive use the app mark and carry their role labels.
-13. Tile tap toggles only its corresponding service; it must not launch or foreground the app UI.
-14. Long-pressing either Quick Settings tile opens the app through Android's tile settings-activity behavior.
-15. Tapping the persistent service notification opens the app.
-16. Tapping the separate status indicator does nothing.
-17. When the user opens or returns to the app, switches and health indicators reflect the latest persisted service state.
-18. Project source, package identifiers, assets and branding are owned by Pistol Whip Productions or explicitly supplied by it.
-19. AI integration is deferred and is not a dependency of mass testing.
-20. The app must not require root access, Wi-Fi Direct, a remote VPN server or a cloud relay.
-21. The SOCKS listener must reject peers outside the local receiving interface subnet.
+## Product identity and scope
 
-## Phase 1 and 1.1 — delivered behavior
+1. The app display name is exactly **Hotspot Pistolwhip'd**.
+2. The project is a standalone Android application with project-owned source, application identity and release channel.
+3. Share and Receive are independent roles, each controlled by one toggle.
+4. Stopping either role must not close the app UI or stop the other role.
+5. No root, cloud relay, remote VPN server, AI service or traffic inspection is required.
 
-- Independent Share/Receive controls and foreground service lifecycle.
-- Multi-client SOCKS5 TCP listener and receiver gateway discovery.
-- Separate Quick Settings controls, silent tile taps, tile long-press navigation and notification navigation.
-- UI remains open when either role is stopped.
-- Phase 1.1 is published as v0.1.1. Physical-device acceptance remains distinct from CI results.
+## Phase 1 — Share
 
-## Phase 2 — VPN tunnel acceptance
+6. Share creates a Wi-Fi Direct group. Android's conventional Hotspot/tethering API is not the transport.
+7. The SSID is formed exactly as `DIRECT-WH` + `IP-[phonename]` = `DIRECT-WHIP-[phonename]`. The implementation must not append an additional `IP-` segment.
+8. The phone-name portion is normalized to SSID-safe ASCII and the full SSID stays within 32 bytes.
+9. A fresh per-session passphrase is generated, 18–20 characters long, with uppercase and lowercase letters, at least five digits and at least five characters from `!@#$%^&*`. Credentials are not logged or persisted.
+10. Share is shown active only after Android confirms group creation and the group credentials are verified.
+11. The SOCKS5 listener starts only after group creation and binds to the Wi-Fi Direct group-owner interface. It must not be exposed on unrelated interfaces.
+12. The Share panel shows the actual SSID, passphrase and available P2P endpoint information.
+13. Credential transfer is user-initiated and limited to copy, a standard Wi-Fi QR code, and Android's standard Sharesheet. Sharesheet text contains only SSID and password; no fixed destination allowlist or automatic send is permitted.
+14. Share supports multiple independent SOCKS5 TCP CONNECT and UDP ASSOCIATE sessions.
 
-- Receiver uses Android VpnService with explicit user consent.
-- Receiver TUN routes IPv4 and IPv6 default traffic into the native TUN-to-SOCKS5 engine.
-- TCP CONNECT and UDP ASSOCIATE are supported end to end.
-- DNS requests are routed through the tunnel and resolved through the Share endpoint.
-- Share supports multiple concurrent TCP and UDP associations.
-- The VPN is bound to the Wi-Fi network connected to the Share phone; the app's own package is excluded to avoid proxy recursion.
-- Wi-Fi loss, upstream failure, native startup failure and user stop produce a red/unhealthy state and stop the local tunnel as appropriate.
-- README, architecture, decision record and test plan describe actual delivered behavior.
+## Phase 2 — Receive and tunnel
 
-**Phase 2 status:** implemented in v0.2.0. CI compilation, unit tests, native ABI checksum verification and APK assembly passed. Physical two-device acceptance remains pending.
+15. Receive detects and validates an already-connected `DIRECT-WHIP-` network, or offers QR scanning and manual credential entry.
+16. The app hands user-selected SSID/password to Android through a local-only WifiNetworkSpecifier request (the request removes INTERNET capability). Android owns connection approval and association; the app does not enumerate or silently select saved networks. Devices without supported local-only STA concurrency may reject the request; provide the Android Wi-Fi settings fallback.
+17. Receive must not establish a VPN while the user is still entering credentials or before the expected Wi-Fi Direct network and Share endpoint are verified.
+18. Android VpnService consent is explicit. The VPN interface is established before the native tunnel starts.
+19. The receiver tunnel forwards TCP and UDP through the Share SOCKS5 endpoint and routes IPv4, IPv6 and DNS as supported by the selected network.
+20. The VPN is bound to the selected Wi-Fi network and the app's own UID is excluded to prevent proxy recursion.
+21. Health remains red until the Share endpoint/upstream probe and native tunnel checks pass. A service toggle, group, listener or VPN interface alone is not proof of end-to-end forwarding.
+22. Network loss, endpoint failure, VPN revocation or native engine failure clears the healthy state and stops the dependent tunnel.
 
-**Phase 2 readiness gate:** two physical devices must demonstrate that receiving-phone app traffic reaches the internet through the sharing phone over TCP and UDP, with DNS verified. IPv6 is tested when supported by the hotspot/upstream. CI success alone is not the end-to-end acceptance gate.
+## UI and platform behavior
 
-## Deferred
+23. Preserve true-black AMOLED styling, system-scaled Roboto/system typography, Material 3 dynamic accents, compact responsive spacing and the existing independent Quick Settings tiles.
+24. Quick Settings tile taps toggle only their corresponding service; they do not open or foreground the app. Long-press opens the app through the tile settings activity. Persistent service notification taps open the app. Status-indicator taps do nothing.
+25. Android/Samsung owns Wi-Fi Direct, Wi-Fi enablement, system approval and background execution. Where the platform blocks an operation, report the limitation and provide a system handoff rather than claiming success.
+26. Android 10 or newer is required for custom Wi-Fi Direct group names and the app-assisted credential association flow. Older versions may use the manual Android Wi-Fi settings path where supported.
 
-- Opt-in auto-receive for previously approved networks.
-- Refined Wi-Fi enable flow and any Android-supported system prompt.
-- Restart prompt/action for service termination where the OS exposes a reliable signal.
-- Kill-switch/lockdown behavior; this is not currently implemented or claimed.
-- Extended Samsung device compatibility, accessibility and performance validation.
-- AI/network intelligence concepts, which require separate approval and privacy/security review.
+## Explicit exclusions
+
+- No conventional Android hotspot/tethering transport.
+- No hard-coded sharing destination list.
+- No automatic credential sharing or upload.
+- No saved-network enumeration or silent network selection.
+- No phone-number prerequisite.
+- No kill switch/lockdown behavior in this phase.
+- No AI, cloud relay, remote VPN server, traffic inspection or automatic log upload.
+
+## Readiness status
+
+- Historical v0.1.x and v0.2.0 releases do not implement the approved Wi-Fi Direct topology.
+- Phase 1/2 source commit c0be9dde255cbb366711ac992a7a9397e06eb910 passed GitHub Actions unit tests and debug APK assembly; native ABI checksum validation also passed.
+- v0.3.0 release publication follows merge to main and its dedicated release workflow.
+- Physical-device acceptance remains separate and is recorded in [TEST_PLAN.md](TEST_PLAN.md).

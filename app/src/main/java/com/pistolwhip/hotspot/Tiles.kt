@@ -18,7 +18,7 @@ class ShareTileService : TileService() {
 class ReceiveTileService : TileService() {
     override fun onClick() {
         val active = State.receive(this)
-        val intent = Intent(this, ReceiveService::class.java).setAction(if (active) ReceiveService.ACTION_STOP else null)
+        val intent = Intent(this, ReceiveService::class.java).setAction(if (active) ReceiveService.ACTION_STOP else ReceiveService.ACTION_MONITOR)
         if (active) startService(intent) else startForegroundService(intent)
         qsTile?.state = if (active) Tile.STATE_INACTIVE else Tile.STATE_ACTIVE
         qsTile?.updateTile()
