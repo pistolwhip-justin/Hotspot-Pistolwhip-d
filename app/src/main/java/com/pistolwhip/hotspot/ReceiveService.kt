@@ -81,6 +81,7 @@ class ReceiveService : Service() {
                 .build()
             val request = NetworkRequest.Builder()
                 .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
+                .removeCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
                 .setNetworkSpecifier(specifier)
                 .build()
             val callback = object : ConnectivityManager.NetworkCallback() {
@@ -102,7 +103,7 @@ class ReceiveService : Service() {
                 }
 
                 override fun onUnavailable() {
-                    update(false, "Android could not connect to that Wi-Fi Direct network")
+                    update(false, "Android could not associate with that local Wi-Fi Direct group; try Android Wi-Fi settings")
                     State.setReceive(this@ReceiveService, false)
                     stopSelf()
                 }
