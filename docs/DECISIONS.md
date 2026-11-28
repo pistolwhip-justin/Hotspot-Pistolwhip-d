@@ -58,3 +58,21 @@
 - Earlier decision that the receiver joins a conventional Android hotspot and that Wi-Fi Direct is not required is superseded by D-002.
 - Earlier release instructions that tell the user to enable conventional hotspot are historical and must not be reused.
 - The v0.2.0 listener/VPN prototype is not accepted as proof of Wi-Fi Direct or end-to-end tunnel functionality.
+
+## D-011 — Exact Wi-Fi Direct SSID construction
+- Date: 2026-11-28
+- Decision: Concatenate the direct-group prefix `DIRECT-WH` with the friendly network name `IP-[phonename]`, producing exactly `DIRECT-WHIP-[phonename]`. Do not append a second `IP-` segment.
+- Rationale: Preserve the user's explicitly approved SSID construction and make the group discoverable by its expected prefix.
+- Status: Accepted; SSID utility and unit test updated.
+
+## D-012 — User-controlled credential sharing
+- Date: 2026-11-28
+- Decision: Provide copy, standard Wi-Fi QR, and Android's standard Sharesheet. Do not maintain a destination-app allowlist. The text share payload contains only the SSID and passphrase, and the user chooses the compatible installed destination.
+- Rationale: Send connection details to another person so they can join correctly, without broader app integrations or automatic credential transfer.
+- Status: Accepted; QR generation, scanner, copy and Sharesheet flow implemented in the Phase 1/2 branch.
+
+## D-013 — Android-managed receiver association
+- Date: 2026-11-28
+- Decision: Receive accepts QR/manual credentials and submits them through Android's supported Wi-Fi network request/association flow. Android owns approval and association; the app does not enumerate or silently select saved networks.
+- Rationale: Keep network selection user-approved and avoid bypassing Android's saved-network behavior.
+- Status: Accepted; implementation uses WifiNetworkSpecifier and requires physical-device validation.
