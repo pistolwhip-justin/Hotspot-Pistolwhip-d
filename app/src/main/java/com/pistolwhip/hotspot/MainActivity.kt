@@ -46,6 +46,7 @@ class MainActivity : ComponentActivity() {
     private var credentialSsid by mutableStateOf("")
     private var credentialPassword by mutableStateOf("")
     private var awaitingWifiSettingsReturn = false
+    private var vpnConsentInProgress = false
     private val mainHandler = Handler(Looper.getMainLooper())
 
     private val nearbyPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -56,8 +57,10 @@ class MainActivity : ComponentActivity() {
     }
 
     private val vpnConsentLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        vpnConsentInProgress = false
         if (result.resultCode == RESULT_OK) openReceiveFlow()
         else {
+            startService(Intent(this, ReceiveService::class.java).setAction(ReceiveService.ACTION_STOP))
             State.setReceive(this, false)
             State.setReceiveMessage("Receive needs Android VPN permission")
         }
@@ -145,12 +148,18 @@ class MainActivity : ComponentActivity() {
                 val intent = Intent(this, ShareService::class.java)
                 if (Build.VERSION.SDK_INT >= 26) startForegroundService(intent) else startService(intent)
             }
-            PendingAction.RECEIVE -> {
-                val vpnIntent = VpnService.prepare(this)
-                if (vpnIntent != null) vpnConsentLauncher.launch(vpnIntent)
-                else openReceiveFlow()
-            }
+            PendingAction.RECEIVE -> requestVpnConsentOrContinue()
             PendingAction.NONE -> Unit
+        }
+    }
+
+    private fun requestVpnConsentOrContinue() {
+        val vpnIntent = VpnService.prepare(this)
+        if (vpnIntent != null) {
+            vpnConsentInProgress = true
+            vpnConsentLauncher.launch(vpnIntent)
+        } else {
+            openReceiveFlow()
         }
     }
 
@@ -186,6 +195,13 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        if (State.receive(this) && !vpnConsentInProgress) {
+            val vpnIntent = VpnService.prepare(this)
+            if (vpnIntent != null) {
+                vpnConsentInProgress = true
+                vpnConsentLauncher.launch(vpnIntent)
+            }
+        }
         if (awaitingWifiSettingsReturn) {
             awaitingWifiSettingsReturn = false
             val wifi = getSystemService(Context.WIFI_SERVICE) as WifiManager
