@@ -17,6 +17,10 @@ object State {
     val receiveHealthy = MutableStateFlow(false)
     val shareSsid = MutableStateFlow("")
     val sharePassphrase = MutableStateFlow("")
+    val shareAddress = MutableStateFlow("")
+    val sharePeerCount = MutableStateFlow(0)
+    val receiveMessage = MutableStateFlow("Not connected")
+    val receiveSsid = MutableStateFlow("")
 
     fun share(context: Context) = context.getSharedPreferences(PREFS, 0).getBoolean(SHARE, false)
     fun receive(context: Context) = context.getSharedPreferences(PREFS, 0).getBoolean(RECEIVE, false)
@@ -40,16 +44,21 @@ object State {
         sharePassphrase.value = ""
     }
 
+    fun setShareAddress(address: String) { shareAddress.value = address }
+    fun setSharePeerCount(count: Int) { sharePeerCount.value = count.coerceAtLeast(0) }
+    fun setReceiveMessage(message: String) { receiveMessage.value = message }
+    fun setReceiveSsid(ssid: String) { receiveSsid.value = ssid }
+
     fun setShare(context: Context, value: Boolean) {
         context.getSharedPreferences(PREFS, 0).edit().putBoolean(SHARE, value).apply()
         shareActive.value = value
-        if (!value) { setShareHealthy(context, false); clearShareCredentials() }
+        if (!value) { setShareHealthy(context, false); clearShareCredentials(); setShareAddress(""); setSharePeerCount(0) }
     }
 
     fun setReceive(context: Context, value: Boolean) {
         context.getSharedPreferences(PREFS, 0).edit().putBoolean(RECEIVE, value).apply()
         receiveActive.value = value
-        if (!value) setReceiveHealthy(context, false)
+        if (!value) { setReceiveHealthy(context, false); setReceiveMessage("Not connected"); setReceiveSsid("") }
     }
 
     fun setTunnel(context: Context, value: Boolean) {
