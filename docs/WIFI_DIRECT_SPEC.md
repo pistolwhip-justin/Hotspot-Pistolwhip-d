@@ -41,7 +41,7 @@ The QR payload must use the standard Wi-Fi QR format with WPA/WPA2-compatible cr
 1. If Wi-Fi is disabled, provide an Android Wi-Fi settings handoff; do not claim that the app can silently enable Wi-Fi on modern Android.
 2. Read the currently connected Wi-Fi SSID and validate the `DIRECT-WHIP-` prefix when a network is already connected.
 3. If there is no matching connection, offer QR scanning or manual SSID/password entry.
-4. Pass the selected credentials to Android through the supported `WifiNetworkSpecifier` connection request. Android owns the system approval and association. Do not enumerate the complete saved-network list or silently select credentials from it.
+4. Pass the selected credentials to Android through a local-only `WifiNetworkSpecifier` connection request (remove `NET_CAPABILITY_INTERNET`). Android owns the system approval and association. Do not enumerate the complete saved-network list or silently select credentials from it. Devices without secondary local-only Wi-Fi concurrency may return unavailable; offer the Android Wi-Fi settings fallback.
 5. Start the receiver VPN only after Android reports association with the expected group and the endpoint is reachable. The VPN must be authorized and established before the tunnel is reported active.
 6. The receiver VPN must not be started while the user is still entering or selecting Wi-Fi credentials.
 
