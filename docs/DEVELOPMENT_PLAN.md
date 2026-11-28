@@ -1,67 +1,43 @@
 # Development plan
 
-Development proceeds through readiness-gated phases. The v0.1.x and v0.2.0 releases are historical prototypes and do not satisfy the current Wi-Fi Direct product specification.
+Development proceeds through readiness-gated phases. The v0.1.x and v0.2.0 releases are historical prototypes built around the earlier conventional-hotspot assumptions; they do not satisfy the current Wi-Fi Direct design.
 
-## Phase 1 — Wi-Fi Direct Share foundation
+## Phase 1 — Wi-Fi Direct Share and credential handoff
 
-- Add runtime permission handling for Wi-Fi Direct on supported Android versions.
-- Create a Wi-Fi Direct group using the required SSID `DIRECT-WHIP-[phonename]`.
-- Generate and retain the session passphrase securely in memory/state only as needed.
-- Start the SOCKS5 listener only after successful group creation and bind/verify it on the P2P interface.
-- Implement explicit state reporting for service, group and listener.
-- Expand the Share UI only after actual group creation.
-- Add automated tests for SSID normalization, password policy and state transitions.
-- Update README, requirements, architecture, decisions and test plan.
+- Establish a Share-side Wi-Fi Direct group using the exact approved SSID construction: `DIRECT-WH` + `IP-[phonename]` = `DIRECT-WHIP-[phonename]`. Do not add a second `IP-` segment.
+- Generate a new session passphrase with the documented 18–20 character policy, including uppercase/lowercase, at least five digits and at least five approved special characters.
+- Confirm group creation and returned credentials before showing Share as active.
+- Bind the multi-client SOCKS5 TCP/UDP listener to the group-owner P2P interface, not a wildcard address on unrelated interfaces.
+- Display SSID/password and P2P endpoint details.
+- Share credentials only by user-initiated copy, standard Wi-Fi QR, or Android Sharesheet. The Sharesheet payload contains only SSID and password; do not hard-code destination apps or automatically send credentials.
+- Keep secrets in memory for the active Share session only and clear them when Share stops.
+- Preserve the OLED-black, system-scaled Material 3 UI and independent service/Quick Settings controls.
 
-**Gate:** CI build/tests pass; on a physical device, Share creates a visible P2P group with the required SSID, Android conventional Hotspot remains off, and a second device can associate with the group.
+**Phase 1 automated gate:** unit tests for SSID construction, passphrase policy and QR parsing; compilation and APK assembly from committed source.
 
-## Phase 2 — Receive discovery and connection handoff
+**Phase 1 device gate:** a real phone creates a visible Wi-Fi Direct group with the exact SSID, conventional Android Hotspot remains off, the P2P interface receives an address, and a second device can associate.
 
-- Enable Wi-Fi through the device's available app permission/capability; use a system handoff when unavailable.
-- Wait ten seconds before reading the active SSID.
-- Detect the expected `DIRECT-WHIP-` prefix and validate the connected network.
-- Add QR and manual credential entry.
-- Present an in-app Wi-Fi configuration UI matching Android's visual conventions and pass the user's selection/action to Android's supported Wi-Fi association API.
-- Observe Android-managed saved-network reconnection rather than duplicating saved-network management.
-- Add connection state, callbacks and failure handling.
+## Phase 2 — Receive association and device-wide tunnel
 
-**Gate:** two physical devices can connect by QR and manual entry; an already saved group can reconnect through Android; no false connected state is shown.
+- If already connected to a matching `DIRECT-WHIP-` group, observe and validate that connection.
+- Otherwise provide QR scanning and manual SSID/password entry.
+- Pass user-selected credentials to Android's supported Wi-Fi network request/association flow. Android owns the approval UI and actual association; do not enumerate or silently choose saved networks.
+- Do not start Receive VPN before the expected Wi-Fi Direct network and SOCKS endpoint have been verified.
+- Establish Android VpnService only after the user grants consent and the expected network is associated.
+- Start the pinned HevSocks5Tunnel 2.20.0 native engine only after the VPN interface is established.
+- Preserve TCP CONNECT, UDP ASSOCIATE, IPv4/IPv6 routes and DNS forwarding from the prior prototype, and bind the VPN to the selected Wi-Fi network.
+- Keep health red until the endpoint probe and native tunnel checks succeed. A running service, group, listener or VPN interface alone is not proof of end-to-end forwarding.
+- Update README, architecture, requirements, decisions, test plan, third-party notices and the versioned release workflow.
 
-## Phase 3 — VPN-gated tunnel integration
+**Phase 2 automated gate:** runtime/build dependencies verified; Kotlin compilation and unit tests pass; native ABI checksums pass; debug APK assembles and is published from the exact source commit.
 
-- Retain the existing native TUN-to-SOCKS5 engine where compatible.
-- Establish Android VpnService only after expected Wi-Fi Direct association and endpoint verification.
-- Start native tunnel only after VPN establishment.
-- Track VPN interface, native engine and traffic probe separately.
-- Ensure failure/disconnect clears healthy status and stops dependent components.
+**Phase 2 device gate:** two real Android phones associate through QR and manual entry; Receive VPN starts only after association; TCP, UDP and DNS traffic traverse the Share phone; IPv6 is checked when supported; disconnect/stop/restart behavior is recorded. CI success is not physical acceptance.
 
-**Gate:** physical receiver traffic passes through the sharing phone; TCP, UDP and DNS verified; IPv6 tested where supported.
+## Phase 3 — diagnostics and resilience (not part of this release)
 
-## Phase 4 — Share presentation and diagnostics
+- Compact verbose-style Wi-Fi Direct/radio statistics with five-second refresh and network callbacks.
+- Best-effort restart attempts after unexpected service failure.
+- Consent-based diagnostic log sharing and saving with credential/identifier redaction.
+- Samsung/One UI background, battery, accessibility and long-duration validation.
 
-- Compact verbose-style wireless information modeled on the user's supplied Wi-Fi diagnostics screenshot.
-- Refresh visible statistics every five seconds and use Android network callbacks.
-- QR generation, copy action and Android Sharesheet with SSID/passphrase only.
-- Keep Share collapsed when off and auto-expand after successful group/listener creation.
-
-**Gate:** credentials share correctly through QR and compatible Sharesheet destinations; diagnostic values match Android-reported network state.
-
-## Phase 5 — resilience and final UX
-
-- Three best-effort service restart attempts ten seconds apart.
-- After repeated failure, ask whether to share logs; redact credentials and identifiers.
-- Cancel, Share & Discard, and Share & Save actions.
-- Best-effort recovery within Android foreground/background restrictions.
-- Final Samsung/One UI, battery, accessibility and physical-device regression checks.
-
-**Gate:** all consent, privacy, recovery and regression checks pass; final release is published from the exact source commit and verified.
-
-## Existing foundation
-
-- Standalone Kotlin/Android project and AMOLED Compose UI.
-- Independent Share/Receive controls and Quick Settings tiles.
-- Multi-client SOCKS5 TCP/UDP server implementation.
-- Receiver VpnService and HevSocks5Tunnel 2.20.0 integration from the earlier prototype; physical forwarding was not accepted.
-- v0.1.x and v0.2.0 releases remain historical reference points only.
-
-No phase is considered complete based only on code being committed or CI passing. Physical-device gates remain explicit.
+This phase remains separate; no AI, cloud relay, remote VPN server, traffic inspection or automatic log upload is approved.
