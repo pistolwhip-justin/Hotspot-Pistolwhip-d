@@ -67,7 +67,7 @@ object WifiCredentialRules {
             if (separator > 0) fields[part.substring(0, separator)] = part.substring(separator + 1)
         }
         val type = fields["T"]?.uppercase() ?: return null
-        if (type !in setOf("WPA", "WPA2", "WPA3")) return null
+        if (type !in setOf("WPA", "WPA2")) return null
         val ssid = fields["S"]?.takeIf { it.startsWith(SSID_PREFIX) } ?: return null
         val password = fields["P"] ?: return null
         if (!isValidPassphrase(password)) return null
