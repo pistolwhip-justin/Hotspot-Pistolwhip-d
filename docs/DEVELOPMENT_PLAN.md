@@ -41,3 +41,11 @@ Development proceeds through readiness-gated phases. The v0.1.x and v0.2.0 relea
 - Samsung/One UI background, battery, accessibility and long-duration validation.
 
 This phase remains separate; no AI, cloud relay, remote VPN server, traffic inspection or automatic log upload is approved.
+
+## Phase 1 & 2 release record
+
+- Source merged to main: `ed0da0bf674514eb0bb4a7373f7119535ce4c478`.
+- Test release: [v0.3.0](https://github.com/pistolwhip-justin/Hotspot-Pistolwhip-d/releases/tag/v0.3.0), debug-signed sideload APK.
+- Release workflow and tag-target verification: [run 46100179331](https://github.com/pistolwhip-justin/Hotspot-Pistolwhip-d/actions/runs/46100179331).
+- CI unit tests, native ABI checksum validation and APK assembly passed.
+- Physical two-device association, end-to-end TCP/UDP/DNS/IPv6 and Samsung background acceptance remain pending user testing.
