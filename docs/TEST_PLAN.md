@@ -30,16 +30,17 @@ Use two real Android phones and the same test APK.
 4. Confirm the Share panel shows the actual passphrase and P2P endpoint only after group/listener readiness.
 5. Verify the credential QR scans as a Wi-Fi configuration and can be shared through Android's standard Sharesheet. Confirm no destination is hard-coded and the payload contains only SSID/password.
 6. On phone B, use the app's QR scanner and connect flow. Confirm Android presents its network approval/association UI.
-7. Repeat with manual SSID/password entry.
-8. Confirm Receive does not show healthy before the expected group is associated and the Share endpoint is reachable.
-9. Approve Android VPN consent. Verify the VPN notification and native engine state.
-10. From ordinary apps on phone B, verify TCP web traffic, DNS resolution and UDP-dependent traffic through phone A.
-11. Verify IPv6 when the group/upstream network supports it and confirm no unintended IPv6 bypass.
-12. Repeat with multiple receivers and independent connections.
-13. Stop Share; confirm Receive reports unhealthy and traffic tunnel stops or reports endpoint loss.
-14. Restore Share and the connection; verify reconnect behavior.
-15. Stop Receive; confirm VPN removal and that the app remains open.
-16. Test permission denial, Wi-Fi off, Android association cancellation, invalid QR/manual credentials, screen-off/background operation and Samsung/One UI behavior.
+7. If Android reports the local-only Wi-Fi request unavailable, record the device/OEM behavior and test the Android Wi-Fi settings fallback.
+8. Repeat with manual SSID/password entry.
+9. Confirm Receive does not show healthy before the expected group is associated and the Share endpoint is reachable.
+10. Approve Android VPN consent. Verify the VPN notification and native engine state.
+11. From ordinary apps on phone B, verify TCP web traffic, DNS resolution and UDP-dependent traffic through phone A.
+12. Verify IPv6 when the group/upstream network supports it and confirm no unintended IPv6 bypass.
+13. Repeat with multiple receivers and independent connections.
+14. Stop Share; confirm Receive reports unhealthy and traffic tunnel stops or reports endpoint loss.
+15. Restore Share and the connection; verify reconnect behavior.
+16. Stop Receive; confirm VPN removal and that the app remains open.
+17. Test permission denial, Wi-Fi off, Android association cancellation, invalid QR/manual credentials, screen-off/background operation and Samsung/One UI behavior.
 
 ## Results
 
