@@ -1,39 +1,57 @@
 # Product requirements
 
-The current authoritative requirements are in [WIFI_DIRECT_SPEC.md](WIFI_DIRECT_SPEC.md). This file records the key acceptance requirements and the history of the earlier prototypes.
+The authoritative Wi-Fi Direct behavior is described in [WIFI_DIRECT_SPEC.md](WIFI_DIRECT_SPEC.md). These requirements define the current Phase 1 and Phase 2 test release.
 
-## Confirmed product requirements
+## Product identity and scope
 
-1. The sharing phone creates a Wi-Fi Direct group; Android's conventional Hotspot setting is not used as the local link.
-2. The actual Wi-Fi Direct SSID is `DIRECT-WHIP-[phonename]`, combining the required `DIRECT-WH` group prefix with `IP-[phonename]`.
-3. Share creates a per-session passphrase with the specified length and character composition; credentials are treated as secrets.
-4. The Share SOCKS5 listener starts only after Android confirms group creation.
-5. The Share panel expands only after the group and listener are established.
-6. Share shows SSID/password, relevant verbose network/radio details and live statistics in a compact diagnostic layout.
-7. The Share action offers a QR code, copy, and Android Sharesheet. Sharesheet uses all compatible installed destinations exposed by Android; no fixed app allowlist is maintained. The share payload contains only SSID and passphrase.
-8. Receive enables Wi-Fi using the available device permission/capability, waits ten seconds, then checks the active SSID.
-9. Receive accepts a matching `DIRECT-WHIP-` network; otherwise it offers QR scanning or manual credential entry.
-10. The app passes user-selected network configuration and intent to Android. Android performs association and credential saving.
-11. The receiver VPN is established only after association with the expected group and successful endpoint validation.
-12. The VPN/tunnel is not reported ready until the VPN interface, native tunnel and end-to-end traffic probe are verified.
-13. The UI preserves true-black AMOLED styling, system-scaled typography, dynamic accents, compact layout, independent Share/Receive controls and existing Quick Settings behavior.
-14. Recovery attempts and log sharing follow the privacy and consent rules in WIFI_DIRECT_SPEC.md.
-15. No root, cloud relay, remote VPN server, traffic inspection, automatic log upload or phone-number prerequisite is introduced.
+1. The app display name is exactly **Hotspot Pistolwhip'd**.
+2. The project is a standalone Android application with project-owned source, application identity and release channel.
+3. Share and Receive are independent roles, each controlled by one toggle.
+4. Stopping either role must not close the app UI or stop the other role.
+5. No root, cloud relay, remote VPN server, AI service or traffic inspection is required.
 
-## Historical prototypes
+## Phase 1 — Share
 
-- v0.1.x and v0.2.0 are historical releases built around the earlier conventional-hotspot assumption.
-- v0.2.0 starts a SOCKS5 listener and contains receiver VPN integration, but it does **not** create the Wi-Fi Direct group required by the current specification.
-- The prior release instructions and architecture are superseded by the current Wi-Fi Direct specification. Do not use v0.2.0 as evidence that the new product flow works.
+6. Share creates a Wi-Fi Direct group. Android's conventional Hotspot/tethering API is not the transport.
+7. The SSID is formed exactly as `DIRECT-WH` + `IP-[phonename]` = `DIRECT-WHIP-[phonename]`. The implementation must not append an additional `IP-` segment.
+8. The phone-name portion is normalized to SSID-safe ASCII and the full SSID stays within 32 bytes.
+9. A fresh per-session passphrase is generated, 18–20 characters long, with uppercase and lowercase letters, at least five digits and at least five characters from `!@#$%^&*`. Credentials are not logged or persisted.
+10. Share is shown active only after Android confirms group creation and the group credentials are verified.
+11. The SOCKS5 listener starts only after group creation and binds to the Wi-Fi Direct group-owner interface. It must not be exposed on unrelated interfaces.
+12. The Share panel shows the actual SSID, passphrase and available P2P endpoint information.
+13. Credential transfer is user-initiated and limited to copy, a standard Wi-Fi QR code, and Android's standard Sharesheet. Sharesheet text contains only SSID and password; no fixed destination allowlist or automatic send is permitted.
+14. Share supports multiple independent SOCKS5 TCP CONNECT and UDP ASSOCIATE sessions.
 
-## Readiness gates
+## Phase 2 — Receive and tunnel
 
-The project will progress through phases only when each gate is demonstrated:
+15. Receive detects and validates an already-connected `DIRECT-WHIP-` network, or offers QR scanning and manual credential entry.
+16. The app hands user-selected SSID/password to Android's supported Wi-Fi association request. Android owns connection approval and association; the app does not enumerate or silently select saved networks.
+17. Receive must not establish a VPN while the user is still entering credentials or before the expected Wi-Fi Direct network and Share endpoint are verified.
+18. Android VpnService consent is explicit. The VPN interface is established before the native tunnel starts.
+19. The receiver tunnel forwards TCP and UDP through the Share SOCKS5 endpoint and routes IPv4, IPv6 and DNS as supported by the selected network.
+20. The VPN is bound to the selected Wi-Fi network and the app's own UID is excluded to prevent proxy recursion.
+21. Health remains red until the Share endpoint/upstream probe and native tunnel checks pass. A service toggle, group, listener or VPN interface alone is not proof of end-to-end forwarding.
+22. Network loss, endpoint failure, VPN revocation or native engine failure clears the healthy state and stops the dependent tunnel.
 
-1. **Wi-Fi Direct Share:** group creation with exact SSID prefix, generated credentials, listener bound to P2P interface, and truthful failure state.
-2. **Receive association:** expected SSID detection, QR/manual credential handoff, Android association and saved-network behavior.
-3. **VPN/tunnel:** VPN starts only after valid group association; native tunnel starts only after VPN establishment.
-4. **End-to-end forwarding:** two physical phones demonstrate working TCP, UDP and DNS traffic through the Share phone; IPv6 where supported.
-5. **UX and resilience:** compact verbose stats, Sharesheet/QR, background behavior, retry/log consent, and Samsung/One UI validation.
+## UI and platform behavior
 
-Automated build success is not physical-device acceptance.
+23. Preserve true-black AMOLED styling, system-scaled Roboto/system typography, Material 3 dynamic accents, compact responsive spacing and the existing independent Quick Settings tiles.
+24. Quick Settings tile taps toggle only their corresponding service; they do not open or foreground the app. Long-press opens the app through the tile settings activity. Persistent service notification taps open the app. Status-indicator taps do nothing.
+25. Android/Samsung owns Wi-Fi Direct, Wi-Fi enablement, system approval and background execution. Where the platform blocks an operation, report the limitation and provide a system handoff rather than claiming success.
+26. Android 10 or newer is required for custom Wi-Fi Direct group names and the app-assisted credential association flow. Older versions may use the manual Android Wi-Fi settings path where supported.
+
+## Explicit exclusions
+
+- No conventional Android hotspot/tethering transport.
+- No hard-coded sharing destination list.
+- No automatic credential sharing or upload.
+- No saved-network enumeration or silent network selection.
+- No phone-number prerequisite.
+- No kill switch/lockdown behavior in this phase.
+- No AI, cloud relay, remote VPN server, traffic inspection or automatic log upload.
+
+## Readiness status
+
+- Historical v0.1.x and v0.2.0 releases do not implement the approved Wi-Fi Direct topology.
+- Phase 1/2 implementation is being validated in the Wi-Fi Direct development branch.
+- CI build/test results and physical-device acceptance are recorded separately in [TEST_PLAN.md](TEST_PLAN.md).
