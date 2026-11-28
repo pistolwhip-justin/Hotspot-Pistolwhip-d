@@ -25,10 +25,11 @@ No credentials, phone number, hardware identifier or diagnostic data are include
 
 1. The user may choose a matching already-connected `DIRECT-WHIP-` network, or scan the Share QR code / enter its SSID and password.
 2. The app validates the expected SSID prefix and passphrase policy.
-3. The app passes the user's selection to Android through `WifiNetworkSpecifier`. Android owns the system approval and association; the app does not enumerate or silently select saved networks.
-4. A network callback provides the associated `Network`. The service checks that the network is Wi-Fi and matches the expected SSID.
-5. The service obtains the group-owner gateway from Android's `LinkProperties` where available, then performs a SOCKS5 TCP CONNECT probe over the selected network.
-6. If the endpoint is unavailable, Receive remains unhealthy and the VPN is not started.
+3. The app passes the user's selection to Android through `WifiNetworkSpecifier`. The request removes `NET_CAPABILITY_INTERNET` because the P2P group is a local-only network; Android owns system approval and association, and the app does not enumerate or silently select saved networks.
+4. Android may satisfy the request as a secondary local-only Wi-Fi connection when the device supports STA concurrency. Unsupported device/OEM combinations may return `onUnavailable`; the app reports this and offers the system Wi-Fi settings fallback.
+5. A network callback provides the associated `Network`. The service checks that the network is Wi-Fi and matches the expected SSID.
+6. The service obtains the group-owner gateway from Android's `LinkProperties` where available, then performs a SOCKS5 TCP CONNECT probe over the selected network.
+7. If the endpoint is unavailable, Receive remains unhealthy and the VPN is not started.
 
 ## VPN and TUN-to-SOCKS data plane
 
