@@ -7,7 +7,6 @@ import android.net.wifi.p2p.WifiP2pManager
 import android.os.Build
 import android.os.Looper
 import android.provider.Settings
-import java.security.SecureRandom
 
 /** Creates and removes the Share-side Wi-Fi Direct group. */
 class WifiDirectGroup(private val context: Context) {
