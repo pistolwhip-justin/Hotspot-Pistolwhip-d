@@ -344,7 +344,7 @@ private fun ShareCredentialsPanel(ssid: String, passphrase: String, address: Str
             Text("Wi-Fi Direct credentials", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
             Text("SSID  $ssid", color = Color(0xffbdbdbd), fontSize = 12.sp)
             Text("PASS  $passphrase", color = Color(0xffbdbdbd), fontSize = 12.sp)
-            if (address.isNotBlank()) Text("P2P IP  $address:$${ShareService.PORT}", color = Color(0xff888888), fontSize = 11.sp)
+            if (address.isNotBlank()) Text("P2P IP  $address:${ShareService.PORT}", color = Color(0xff888888), fontSize = 11.sp)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                 OutlinedButton(onClick = {
                     val payload = "SSID: $ssid\nPassword: $passphrase"
