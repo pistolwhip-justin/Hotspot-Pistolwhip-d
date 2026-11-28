@@ -41,9 +41,7 @@ class ShareService : Service() {
             wifiDirectGroup = group
             group.create(
                 onReady = { credentials ->
-                    State.setShareCredentials(credentials.ssid, credentials.passphrase)
-                    State.setShare(this, true)
-                    clients.execute { listen() }
+                    clients.execute { listen(credentials) }
                 },
                 onError = { message ->
                     State.setShare(this, false)
@@ -60,7 +58,7 @@ class ShareService : Service() {
         return START_STICKY
     }
 
-    private fun listen() {
+    private fun listen(credentials: WifiDirectGroup.Credentials) {
         try {
             val p2pAddress = waitForP2pAddress()
                 ?: throw IOException("Wi-Fi Direct group-owner interface did not receive an IPv4 address")
@@ -70,6 +68,7 @@ class ShareService : Service() {
             }
             socket.use {
                 server = it
+                State.setShareCredentials(credentials.ssid, credentials.passphrase)
                 State.setShareAddress(p2pAddress.hostAddress ?: "")
                 State.setShare(this, true)
                 State.setShareHealthy(this, true)
