@@ -47,5 +47,7 @@ Use two real Android phones and the same test APK.
 - v0.1.0 and v0.1.1: historical local-link prototypes.
 - v0.2.0: historical conventional-hotspot VPN prototype; it does not implement the current Wi-Fi Direct topology.
 - Phase 1/2 source commit c0be9dde255cbb366711ac992a7a9397e06eb910: GitHub Actions run [46099750644](https://github.com/pistolwhip-justin/Hotspot-Pistolwhip-d/actions/runs/46099750644) completed successfully. Pinned native ABI checksum validation passed; `testDebugUnitTest` and `assembleDebug` passed; the APK was assembled and uploaded as artifact 15244734328. This is a CI result, not a physical-device result.
-- v0.3.0 release publication: pending merge to main and the dedicated versioned release workflow.
+- v0.3.0 test release: published as [GitHub Release](https://github.com/pistolwhip-justin/Hotspot-Pistolwhip-d/releases/tag/v0.3.0). The [release workflow](https://github.com/pistolwhip-justin/Hotspot-Pistolwhip-d/actions/runs/46100179331) completed successfully from merge commit ed0da0bf674514eb0bb4a7373f7119535ce4c478; the tag v0.3.0 resolves to that exact commit.
+- Published APK asset: [Hotspot-Pistolwhipd-v0.3.0-debug.apk](https://github.com/pistolwhip-justin/Hotspot-Pistolwhip-d/releases/download/v0.3.0/Hotspot-Pistolwhipd-v0.3.0-debug.apk)
+- APK SHA-256 verified against GitHub release asset metadata: `05825d3ce36867127399dec05bfb5045e00c9d1fd3c5f92453e817b1c0a19138`. The downloaded artifact ZIP digest also matched its Actions artifact metadata; extracted APK ZIP integrity passed.
 - Physical two-device Wi-Fi Direct, TCP/UDP/DNS and Samsung background behavior: pending user testing; not inferred from CI.
