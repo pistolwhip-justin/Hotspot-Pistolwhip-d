@@ -46,6 +46,6 @@ Use two real Android phones and the same test APK.
 
 - v0.1.0 and v0.1.1: historical local-link prototypes.
 - v0.2.0: historical conventional-hotspot VPN prototype; it does not implement the current Wi-Fi Direct topology.
-- Phase 1/2 source commit e69af99a65031cf7b2238346a37b3356da1d04e6: GitHub Actions run [46099313775](https://github.com/pistolwhip-justin/Hotspot-Pistolwhip-d/actions/runs/46099313775) completed successfully. Pinned native ABI checksum validation passed; `testDebugUnitTest` and `assembleDebug` passed; the APK was assembled and uploaded as artifact 15244827941. Gradle reported 42 actionable tasks. This is a CI result, not a test count or physical-device result.
+- Phase 1/2 source commit c0be9dde255cbb366711ac992a7a9397e06eb910: GitHub Actions run [46099750644](https://github.com/pistolwhip-justin/Hotspot-Pistolwhip-d/actions/runs/46099750644) completed successfully. Pinned native ABI checksum validation passed; `testDebugUnitTest` and `assembleDebug` passed; the APK was assembled and uploaded as artifact 15244734328. This is a CI result, not a physical-device result.
 - v0.3.0 release publication: pending merge to main and the dedicated versioned release workflow.
 - Physical two-device Wi-Fi Direct, TCP/UDP/DNS and Samsung background behavior: pending user testing; not inferred from CI.
