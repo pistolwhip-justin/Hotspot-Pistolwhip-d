@@ -21,7 +21,7 @@ Development proceeds through readiness-gated phases. The v0.1.x and v0.2.0 relea
 
 - If already connected to a matching `DIRECT-WHIP-` group, observe and validate that connection.
 - Otherwise provide QR scanning and manual SSID/password entry.
-- Pass user-selected credentials to Android's supported Wi-Fi network request/association flow. Android owns the approval UI and actual association; do not enumerate or silently choose saved networks.
+- Pass user-selected credentials to Android through a local-only WifiNetworkSpecifier request (remove INTERNET capability). Android owns the approval UI and actual association; do not enumerate or silently choose saved networks. If the device lacks local-only STA concurrency, report Android's unavailable result and provide the system Wi-Fi settings fallback.
 - Do not start Receive VPN before the expected Wi-Fi Direct network and SOCKS endpoint have been verified.
 - Establish Android VpnService only after the user grants consent and the expected network is associated.
 - Start the pinned HevSocks5Tunnel 2.20.0 native engine only after the VPN interface is established.
