@@ -75,4 +75,4 @@
 - Date: 2026-11-28
 - Decision: Receive accepts QR/manual credentials and submits them through Android's supported Wi-Fi network request/association flow. Android owns approval and association; the app does not enumerate or silently select saved networks.
 - Rationale: Keep network selection user-approved and avoid bypassing Android's saved-network behavior.
-- Status: Accepted; implementation uses WifiNetworkSpecifier and requires physical-device validation.
+- Status: Accepted; implementation uses WifiNetworkSpecifier local-only request and requires physical-device validation.
