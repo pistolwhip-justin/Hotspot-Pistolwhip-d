@@ -14,7 +14,8 @@
 ## Phase 2 — automated checks
 
 - Receive rejects credentials that do not match the DIRECT-WHIP prefix or passphrase policy.
-- Receive requests a local-only Wi-Fi network (removes INTERNET capability) through Android with the selected SSID/password and does not enumerate saved networks.\n- Devices without local-only STA concurrency report unavailable and use the Android Wi-Fi settings fallback.
+- Receive requests a local-only Wi-Fi network (removes INTERNET capability) through Android with the selected SSID/password and does not enumerate saved networks.
+- Devices without local-only STA concurrency report unavailable and use the Android Wi-Fi settings fallback.
 - Receive validates the associated SSID and SOCKS5 upstream before requesting the VPN tunnel.
 - VPN/native tunnel startup failure, consent denial and network loss leave the Receive health indicator red.
 - The versioned release workflow publishes the expected APK from the exact commit identified by its tag.
