@@ -8,139 +8,244 @@ import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import android.net.VpnService
+import android.net.wifi.WifiInfo
+import android.net.wifi.WifiNetworkSpecifier
+import android.net.wifi.WifiManager
+import android.os.Build
 import android.os.IBinder
 import java.io.ByteArrayOutputStream
+import java.io.EOFException
 import java.net.InetSocketAddress
 import java.net.Socket
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import hev.htproxy.TProxyService
 
+/** Receiver-side network association, endpoint validation and VPN lifecycle. */
 class ReceiveService : Service() {
     private val executor = Executors.newSingleThreadScheduledExecutor()
     @Volatile private var currentNetwork: Network? = null
-    @Volatile private var monitoring = false
-    @Volatile private var activeGateway: String? = null
-    @Volatile private var activeNetwork: Network? = null
-    @Volatile private var tunnelRequestedAt = 0L
-
-    private val callback = object : ConnectivityManager.NetworkCallback() {
-        override fun onAvailable(network: Network) {
-            currentNetwork = network
-            scheduleCheck()
-        }
-        override fun onLost(network: Network) {
-            if (currentNetwork == network) currentNetwork = null
-            stopTunnel()
-            update(false, "Wi-Fi disconnected — join the sharing phone's hotspot")
-        }
-        override fun onLinkPropertiesChanged(network: Network, linkProperties: android.net.LinkProperties) {
-            currentNetwork = network
-            scheduleCheck()
-        }
-    }
+    @Volatile private var currentSsid: String? = null
+    @Volatile private var requestedNetworkCallback: ConnectivityManager.NetworkCallback? = null
+    @Volatile private var monitorCallback: ConnectivityManager.NetworkCallback? = null
+    @Volatile private var connectivity: ConnectivityManager? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {
-            stopTunnel()
+            stopReceiver()
             stopSelf()
             return START_NOT_STICKY
         }
 
-        startForeground(12, Notifications.build(this, "Receiving link", "Checking Wi-Fi and VPN authorization"))
-        if (VpnService.prepare(this) != null) {
-            State.setReceive(this, false)
-            update(false, "Open the app and tap Receive to approve Android's VPN permission")
-            // Keep the notification available; its tap opens the app. The tile itself
-            // never launches or foregrounds the Activity.
-            return START_STICKY
+        startForeground(12, Notifications.build(this, "Receiving link", "Preparing Wi-Fi Direct connection"))
+        connectivity = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+
+        when (intent?.action) {
+            ACTION_CONNECT -> {
+                val ssid = intent.getStringExtra(EXTRA_SSID).orEmpty()
+                val password = intent.getStringExtra(EXTRA_PASSWORD).orEmpty()
+                requestSpecifiedNetwork(ssid, password)
+            }
+            ACTION_MONITOR -> monitorExistingNetwork()
+            else -> {
+                update(false, "Open the app and choose a Wi-Fi Direct network")
+                stopSelf()
+            }
+        }
+        return START_NOT_STICKY
+    }
+
+    private fun requestSpecifiedNetwork(ssid: String, password: String) {
+        if (Build.VERSION.SDK_INT < 29) {
+            update(false, "App-assisted Wi-Fi connection requires Android 10 or newer; use Android Wi-Fi settings")
+            stopSelf()
+            return
+        }
+        if (!ssid.startsWith(WifiCredentialRules.SSID_PREFIX) || !WifiCredentialRules.isValidPassphrase(password)) {
+            update(false, "The Wi-Fi Direct network name or password is invalid")
+            stopSelf()
+            return
         }
 
+        val cm = connectivity ?: return
+        releaseNetworkCallbacks()
+        currentSsid = ssid
         State.setReceive(this, true)
-        if (!monitoring) {
-            monitoring = true
-            val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-            try {
-                cm.registerNetworkCallback(
-                    NetworkRequest.Builder().addTransportType(NetworkCapabilities.TRANSPORT_WIFI).build(),
-                    callback
-                )
-            } catch (_: Exception) { }
-            currentNetwork = cm.allNetworks.firstOrNull {
-                cm.getNetworkCapabilities(it)?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true
+        State.setReceiveSsid(ssid)
+        update(false, "Requesting Android to connect to $ssid")
+
+        try {
+            val specifier = WifiNetworkSpecifier.Builder()
+                .setSsid(ssid)
+                .setWpa2Passphrase(password)
+                .build()
+            val request = NetworkRequest.Builder()
+                .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
+                .setNetworkSpecifier(specifier)
+                .build()
+            val callback = object : ConnectivityManager.NetworkCallback() {
+                override fun onAvailable(network: Network) {
+                    currentNetwork = network
+                    executor.execute { verifyNetworkAndStartTunnel(network, ssid) }
+                }
+
+                override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
+                    if (network == currentNetwork) executor.execute { verifyNetworkAndStartTunnel(network, ssid) }
+                }
+
+                override fun onLost(network: Network) {
+                    if (network == currentNetwork) {
+                        currentNetwork = null
+                        stopTunnel()
+                        update(false, "Wi-Fi Direct connection lost; waiting for Android to reconnect")
+                    }
+                }
+
+                override fun onUnavailable() {
+                    update(false, "Android could not connect to that Wi-Fi Direct network")
+                    State.setReceive(this@ReceiveService, false)
+                    stopSelf()
+                }
             }
-            executor.scheduleWithFixedDelay({ checkLink() }, 0, 15, TimeUnit.SECONDS)
-        } else {
-            scheduleCheck()
-        }
-        return START_STICKY
-    }
-
-    private fun scheduleCheck() {
-        if (monitoring) executor.execute { checkLink() }
-    }
-
-    private fun checkLink() {
-        if (VpnService.prepare(this) != null) {
-            stopTunnel()
+            requestedNetworkCallback = callback
+            cm.requestNetwork(request, callback, NETWORK_REQUEST_TIMEOUT_MS)
+        } catch (error: SecurityException) {
+            update(false, "Nearby Wi-Fi permission is required: " + (error.message ?: "permission denied"))
             State.setReceive(this, false)
-            update(false, "VPN permission is required — open the app and tap Receive")
-            return
+            stopSelf()
+        } catch (error: Exception) {
+            update(false, error.message ?: "Could not request the Wi-Fi Direct connection")
+            State.setReceive(this, false)
+            stopSelf()
         }
+    }
 
-        val network = currentNetwork ?: run {
-            stopTunnel()
-            update(false, "Connect to the sharing phone's Wi-Fi")
-            return
-        }
-        val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        if (cm.getNetworkCapabilities(network)?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) != true) {
-            stopTunnel()
-            update(false, "Waiting for the sharing phone's Wi-Fi")
-            return
-        }
-        val gateway = cm.getLinkProperties(network)?.routes
-            ?.firstOrNull { it.destination.prefixLength == 0 && it.gateway != null }?.gateway?.hostAddress
-            ?: run {
-                stopTunnel()
-                update(false, "Could not identify the Wi-Fi gateway")
-                return
+    private fun monitorExistingNetwork() {
+        val cm = connectivity ?: return
+        State.setReceive(this, true)
+        val callback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                val ssid = readSsid(network) ?: return
+                if (ssid.startsWith(WifiCredentialRules.SSID_PREFIX)) {
+                    currentNetwork = network
+                    currentSsid = ssid
+                    State.setReceiveSsid(ssid)
+                    executor.execute { verifyNetworkAndStartTunnel(network, ssid) }
+                }
             }
 
+            override fun onLost(network: Network) {
+                if (network == currentNetwork) {
+                    currentNetwork = null
+                    stopTunnel()
+                    update(false, "Wi-Fi Direct connection lost")
+                }
+            }
+
+            override fun onLinkPropertiesChanged(network: Network, linkProperties: android.net.LinkProperties) {
+                if (network == currentNetwork) executor.execute { verifyNetworkAndStartTunnel(network, currentSsid.orEmpty()) }
+            }
+        }
+        monitorCallback = callback
+        try {
+            cm.registerNetworkCallback(
+                NetworkRequest.Builder().addTransportType(NetworkCapabilities.TRANSPORT_WIFI).build(),
+                callback
+            )
+        } catch (_: Exception) { }
+
+        val candidate = cm.allNetworks.firstOrNull { network ->
+            cm.getNetworkCapabilities(network)?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true &&
+                (readSsid(network)?.startsWith(WifiCredentialRules.SSID_PREFIX) == true)
+        }
+        if (candidate != null) {
+            currentNetwork = candidate
+            currentSsid = readSsid(candidate)
+            State.setReceiveSsid(currentSsid.orEmpty())
+            executor.execute { verifyNetworkAndStartTunnel(candidate, currentSsid.orEmpty()) }
+        } else {
+            update(false, "Join a DIRECT-WHIP- network, then activate Receive")
+        }
+    }
+
+    private fun readSsid(network: Network): String? {
+        val cm = connectivity ?: return null
+        val info = cm.getNetworkCapabilities(network)?.transportInfo as? WifiInfo ?: return null
+        val value = info.ssid.trim('"')
+        return value.takeIf { it.isNotBlank() && it != WifiInfo.UNKNOWN_SSID }
+    }
+
+    private fun gatewayFor(network: Network): String? {
+        val cm = connectivity ?: return null
+        val linkProperties = cm.getLinkProperties(network)
+        val routeGateway = linkProperties?.routes
+            ?.firstOrNull { it.destination.prefixLength == 0 && it.gateway != null }?.gateway
+            ?: linkProperties?.routes?.firstOrNull { it.gateway != null }?.gateway
+        if (routeGateway != null && !routeGateway.isAnyLocalAddress) return routeGateway.hostAddress
+
+        // Some OEM Wi-Fi Direct clients expose the group-owner gateway through
+        // DhcpInfo rather than the Network's default-route list.
+        return try {
+            val dhcp = (getSystemService(Context.WIFI_SERVICE) as WifiManager).dhcpInfo
+            val address = dhcp.gateway
+            if (address == 0) null else
+                java.net.InetAddress.getByAddress(byteArrayOf(
+                    (address and 0xff).toByte(),
+                    (address shr 8 and 0xff).toByte(),
+                    (address shr 16 and 0xff).toByte(),
+                    (address shr 24 and 0xff).toByte()
+                )).hostAddress
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun verifyNetworkAndStartTunnel(network: Network, ssid: String) {
+        if (!State.receive(this) || network != currentNetwork) return
+        if (!ssid.startsWith(WifiCredentialRules.SSID_PREFIX)) {
+            update(false, "Connected network is not a DIRECT-WHIP- group")
+            return
+        }
+        val gateway = gatewayFor(network) ?: run {
+            update(false, "Android did not expose the Wi-Fi Direct group-owner address")
+            return
+        }
         if (!probeSocksUpstream(network, gateway)) {
             stopTunnel()
-            update(false, "Sharing endpoint or upstream internet is unavailable")
+            update(false, "Wi-Fi Direct is connected, but the Share SOCKS endpoint or upstream internet is unavailable")
             return
         }
 
-        if (activeGateway != gateway || activeNetwork != network) {
+        if (VpnService.prepare(this) != null) {
             stopTunnel()
-            activeGateway = gateway
-            activeNetwork = network
-            tunnelRequestedAt = System.currentTimeMillis()
-            State.setTunnel(this, false)
-            TunnelVpnService.start(this, gateway, network)
-            update(false, "Sharing endpoint verified — starting device-wide VPN")
+            update(false, "Open Hotspot Pistolwhip'd and approve Android's VPN permission")
             return
         }
 
         if (State.tunnel(this) && nativeTunnelRunning()) {
-            update(true, "VPN active · sharing endpoint and upstream SOCKS connection verified")
-        } else if (State.tunnel(this)) {
-            stopTunnel()
-            update(false, "VPN engine stopped — restarting the tunnel")
-        } else if (System.currentTimeMillis() - tunnelRequestedAt > 15_000) {
-            update(false, "VPN tunnel did not become active — check the Receive VPN notification")
-        } else {
-            update(false, "Sharing endpoint verified — starting device-wide VPN")
+            update(true, "VPN engine active · upstream SOCKS endpoint verified")
+            return
         }
+
+        update(false, "Share endpoint verified · starting device-wide VPN")
+        TunnelVpnService.start(this, gateway, network)
+        repeat(24) {
+            if (!State.receive(this) || network != currentNetwork) return
+            if (State.tunnel(this) && nativeTunnelRunning()) {
+                update(true, "VPN engine active · end-to-end traffic still requires device testing")
+                return
+            }
+            try { Thread.sleep(500) } catch (_: InterruptedException) {
+                Thread.currentThread().interrupt()
+                return
+            }
+        }
+        update(false, "VPN tunnel did not become active; check the Receive VPN notification")
     }
 
-    private fun nativeTunnelRunning(): Boolean {
-        return try { TProxyService.TProxyIsRunning() } catch (_: Throwable) { false }
-    }
+    private fun nativeTunnelRunning(): Boolean =
+        try { TProxyService.TProxyIsRunning() } catch (_: Throwable) { false }
 
-    /** Verify a real SOCKS5 CONNECT to an Internet host over the selected Wi-Fi network. */
     private fun probeSocksUpstream(network: Network, gateway: String): Boolean {
         return try {
             network.socketFactory.createSocket().use { socket ->
@@ -157,7 +262,7 @@ class ReceiveService : Service() {
                 val request = ByteArrayOutputStream().apply {
                     write(byteArrayOf(5, 1, 0, 3, host.size.toByte()))
                     write(host)
-                    write(byteArrayOf(1, 0xbb.toByte())) // TCP port 443
+                    write(byteArrayOf(1, 0xbb.toByte()))
                 }.toByteArray()
                 output.write(request)
                 output.flush()
@@ -174,7 +279,7 @@ class ReceiveService : Service() {
         var offset = 0
         while (offset < count) {
             val read = input.read(bytes, offset, count - offset)
-            if (read < 0) throw java.io.EOFException()
+            if (read < 0) throw EOFException()
             offset += read
         }
         return bytes
@@ -183,23 +288,36 @@ class ReceiveService : Service() {
     private fun stopTunnel() {
         try { stopService(Intent(this, TunnelVpnService::class.java)) } catch (_: Exception) { }
         State.setTunnel(this, false)
-        activeGateway = null
-        activeNetwork = null
-        tunnelRequestedAt = 0L
+        State.setReceiveHealthy(this, false)
+    }
+
+    private fun releaseNetworkCallbacks() {
+        val cm = connectivity ?: return
+        try { requestedNetworkCallback?.let { cm.unregisterNetworkCallback(it) } } catch (_: Exception) { }
+        try { monitorCallback?.let { cm.unregisterNetworkCallback(it) } } catch (_: Exception) { }
+        requestedNetworkCallback = null
+        monitorCallback = null
+    }
+
+    private fun stopReceiver() {
+        releaseNetworkCallbacks()
+        currentNetwork = null
+        currentSsid = null
+        stopTunnel()
+        State.setReceive(this, false)
+        stopForeground(STOP_FOREGROUND_REMOVE)
     }
 
     private fun update(healthy: Boolean, message: String) {
         State.setReceiveHealthy(this, healthy)
+        State.setReceiveMessage(message)
         (getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager)
             .notify(12, Notifications.build(this, "Receiving link", message, healthy))
     }
 
     override fun onDestroy() {
-        try {
-            (getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager).unregisterNetworkCallback(callback)
-        } catch (_: Exception) { }
+        releaseNetworkCallbacks()
         stopTunnel()
-        monitoring = false
         executor.shutdownNow()
         State.setReceive(this, false)
         State.setReceiveHealthy(this, false)
@@ -211,5 +329,10 @@ class ReceiveService : Service() {
 
     companion object {
         const val ACTION_STOP = "com.pistolwhip.hotspot.STOP_RECEIVE"
+        const val ACTION_CONNECT = "com.pistolwhip.hotspot.CONNECT_WIFI_DIRECT"
+        const val ACTION_MONITOR = "com.pistolwhip.hotspot.MONITOR_WIFI_DIRECT"
+        const val EXTRA_SSID = "wifi_direct_ssid"
+        const val EXTRA_PASSWORD = "wifi_direct_password"
+        private const val NETWORK_REQUEST_TIMEOUT_MS = 45_000
     }
 }
