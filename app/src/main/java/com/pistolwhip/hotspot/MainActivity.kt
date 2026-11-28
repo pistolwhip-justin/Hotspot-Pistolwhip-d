@@ -156,6 +156,7 @@ class MainActivity : ComponentActivity() {
 
     @Suppress("DEPRECATION")
     private fun openReceiveFlow() {
+        State.setReceive(this, true)
         val wifi = getSystemService(Context.WIFI_SERVICE) as WifiManager
         if (!wifi.isWifiEnabled) {
             if (Build.VERSION.SDK_INT < 29 && runCatching { wifi.setWifiEnabled(true) }.getOrDefault(false)) {
