@@ -168,11 +168,16 @@ class ReceiveService : Service() {
         }
     }
 
+    @Suppress("DEPRECATION")
     private fun readSsid(network: Network): String? {
         val cm = connectivity ?: return null
-        val info = cm.getNetworkCapabilities(network)?.transportInfo as? WifiInfo ?: return null
+        val info = if (Build.VERSION.SDK_INT >= 31) {
+            cm.getNetworkCapabilities(network)?.transportInfo as? WifiInfo
+        } else {
+            (getSystemService(Context.WIFI_SERVICE) as WifiManager).connectionInfo
+        } ?: return null
         val value = info.ssid.trim('"')
-        return value.takeIf { it.isNotBlank() && it != WifiInfo.UNKNOWN_SSID }
+        return value.takeIf { it.isNotBlank() && it != "<unknown ssid>" }
     }
 
     private fun gatewayFor(network: Network): String? {
