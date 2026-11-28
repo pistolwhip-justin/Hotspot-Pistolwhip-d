@@ -25,7 +25,7 @@ class WifiCredentialRulesTest {
     }
 
     @Test fun parsesStandardWifiQrForThisAppNetwork() {
-        val password = "AbCdE2345!@#$%fGhIj"
+        val password = "AbCdE23456!@#$%fghij"
         val parsed = WifiCredentialRules.parseWifiQr("WIFI:T:WPA;S:DIRECT-WHIP-A15;P:$password;;")
         assertNotNull(parsed)
         assertEquals("DIRECT-WHIP-A15", parsed!!.ssid)
