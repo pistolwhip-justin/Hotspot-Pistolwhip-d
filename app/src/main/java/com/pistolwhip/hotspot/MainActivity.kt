@@ -11,6 +11,8 @@ import android.net.VpnService
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -43,6 +45,8 @@ class MainActivity : ComponentActivity() {
     private var showCredentialDialog by mutableStateOf(false)
     private var credentialSsid by mutableStateOf("")
     private var credentialPassword by mutableStateOf("")
+    private var awaitingWifiSettingsReturn = false
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     private val nearbyPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         val action = pendingAction
@@ -150,8 +154,20 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @Suppress("DEPRECATION")
     private fun openReceiveFlow() {
         val wifi = getSystemService(Context.WIFI_SERVICE) as WifiManager
+        if (!wifi.isWifiEnabled) {
+            if (Build.VERSION.SDK_INT < 29 && runCatching { wifi.setWifiEnabled(true) }.getOrDefault(false)) {
+                State.setReceiveMessage("Wi-Fi is turning on; checking for the Share network")
+                mainHandler.postDelayed({ openReceiveFlow() }, 10_000)
+            } else {
+                awaitingWifiSettingsReturn = true
+                State.setReceiveMessage("Enable Wi-Fi in Android settings, then return to Receive")
+                startActivity(Intent(Settings.ACTION_WIFI_SETTINGS))
+            }
+            return
+        }
         val currentSsid = wifi.connectionInfo?.ssid.orEmpty().trim('"')
         if (currentSsid.startsWith(WifiCredentialRules.SSID_PREFIX)) {
             State.setReceive(this, true)
@@ -164,6 +180,19 @@ class MainActivity : ComponentActivity() {
             credentialPassword = ""
             State.setReceiveMessage("Scan the Share phone's QR code or enter its Wi-Fi credentials")
             showCredentialDialog = true
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (awaitingWifiSettingsReturn) {
+            awaitingWifiSettingsReturn = false
+            val wifi = getSystemService(Context.WIFI_SERVICE) as WifiManager
+            if (wifi.isWifiEnabled) {
+                mainHandler.postDelayed({ openReceiveFlow() }, 10_000)
+            } else {
+                State.setReceiveMessage("Wi-Fi is still off; enable it and tap Receive again")
+            }
         }
     }
 
