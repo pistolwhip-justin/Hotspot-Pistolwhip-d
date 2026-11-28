@@ -14,6 +14,7 @@
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <application
+        android:hardwareAccelerated="true"
         android:allowBackup="false"
         android:label="Hotspot Pistolwhip'd"
         android:icon="@drawable/ic_hotspot_mark"
