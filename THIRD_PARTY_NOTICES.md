@@ -29,3 +29,15 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+## ZXing Core and JourneyApps Android Embedded
+
+- ZXing Core: https://github.com/zxing/zxing
+- Android scanner wrapper: https://github.com/journeyapps/zxing-android-embedded
+- Version: JourneyApps 4.3.0; ZXing Core 3.5.3
+- License: Apache License 2.0
+- Purpose: Generate Wi-Fi QR codes and scan Wi-Fi credential QR codes locally on the device. No image or credential is uploaded.
+
+Copyright notices and the full Apache License 2.0 are available from the upstream projects:
+- https://github.com/journeyapps/zxing-android-embedded/blob/master/LICENSE
+- https://github.com/zxing/zxing/blob/master/LICENSE
