@@ -26,7 +26,7 @@ jobs:
 
       - name: Refuse to overwrite an existing versioned release
         id: release_guard
-        if: github.event_name == 'push'
+        if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -140,4 +140,5 @@ jobs:
           expected="$GITHUB_SHA"
           actual="$(gh api "repos/$GITHUB_REPOSITORY/commits/v0.3.0" --jq '.sha')"
           test "$actual" = "$expected"
-          gh release view v0.3.0 --repo "$GITHUB_REPOSITORY" --json assets             --jq '.assets[] | select(.name == "Hotspot-Pistolwhipd-v0.3.0-debug.apk") | .name'             | grep -Fx 'Hotspot-Pistolwhipd-v0.3.0-debug.apk'
+          gh release view v0.3.0 --repo "$GITHUB_REPOSITORY" --json assets \
+            --jq '.assets[] | select(.name == "Hotspot-Pistolwhipd-v0.3.0-debug.apk") | .name'             | grep -Fx 'Hotspot-Pistolwhipd-v0.3.0-debug.apk'
