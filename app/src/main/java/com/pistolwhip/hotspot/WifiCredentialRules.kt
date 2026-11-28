@@ -51,7 +51,7 @@ object WifiCredentialRules {
             if (escaped) {
                 current.append(char)
                 escaped = false
-            } else if (char == '\\\\') {
+            } else if (char == '\\') {
                 escaped = true
             } else if (char == ';') {
                 parts += current.toString()
@@ -60,7 +60,7 @@ object WifiCredentialRules {
                 current.append(char)
             }
         }
-        if (escaped) current.append('\\\\')
+        if (escaped) current.append('\\')
         if (current.isNotEmpty()) parts += current.toString()
         for (part in parts) {
             val separator = part.indexOf(':')
@@ -76,7 +76,7 @@ object WifiCredentialRules {
 
     fun escapeWifiQr(value: String): String = buildString {
         value.forEach { char ->
-            if (char in charArrayOf('\\\\', ';', ',', ':', '"')) append('\\\\')
+            if (char in charArrayOf('\\', ';', ',', ':', '"')) append('\\')
             append(char)
         }
     }
