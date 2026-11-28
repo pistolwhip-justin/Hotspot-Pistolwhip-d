@@ -39,6 +39,6 @@ class WifiCredentialRulesTest {
     }
 
     @Test fun qrEscapesSpecialWifiFieldCharacters() {
-        assertEquals("a\\\\;b\\\\,c\\\\:d\\\\\"e", WifiCredentialRules.escapeWifiQr("a;b,c:d\"e"))
+        assertEquals("a\\;b\\,c\\:d\\\"e", WifiCredentialRules.escapeWifiQr("a;b,c:d\"e"))
     }
 }
