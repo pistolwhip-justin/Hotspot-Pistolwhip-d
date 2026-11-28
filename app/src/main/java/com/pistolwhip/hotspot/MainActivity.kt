@@ -200,6 +200,8 @@ class MainActivity : ComponentActivity() {
             if (vpnIntent != null) {
                 vpnConsentInProgress = true
                 vpnConsentLauncher.launch(vpnIntent)
+            } else if (State.receiveMessage.value.startsWith("Join a DIRECT-WHIP")) {
+                openReceiveFlow()
             }
         }
         if (awaitingWifiSettingsReturn) {
