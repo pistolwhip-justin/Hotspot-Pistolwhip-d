@@ -53,5 +53,6 @@ The authoritative Wi-Fi Direct behavior is described in [WIFI_DIRECT_SPEC.md](WI
 ## Readiness status
 
 - Historical v0.1.x and v0.2.0 releases do not implement the approved Wi-Fi Direct topology.
-- Phase 1/2 implementation is being validated in the Wi-Fi Direct development branch.
-- CI build/test results and physical-device acceptance are recorded separately in [TEST_PLAN.md](TEST_PLAN.md).
+- Phase 1/2 source commit e69af99a65031cf7b2238346a37b3356da1d04e6 passed GitHub Actions unit tests and debug APK assembly; native ABI checksum validation also passed.
+- v0.3.0 release publication follows merge to main and its dedicated release workflow.
+- Physical-device acceptance remains separate and is recorded in [TEST_PLAN.md](TEST_PLAN.md).
