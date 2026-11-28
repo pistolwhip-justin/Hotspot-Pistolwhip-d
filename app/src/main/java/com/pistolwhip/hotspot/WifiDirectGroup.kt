@@ -26,9 +26,8 @@ class WifiDirectGroup(private val context: Context) {
         val deviceName = runCatching {
             Settings.Global.getString(context.contentResolver, "device_name")
         }.getOrNull().orEmpty().ifBlank { Build.MODEL.orEmpty() }
-        val safeName = deviceName.replace(Regex("[^A-Za-z0-9_-]"), "").ifBlank { "Android" }.take(17)
-        val ssid = "DIRECT-WHIP-IP-$safeName"
-        val passphrase = generatePassphrase()
+        val ssid = WifiCredentialRules.ssidForDeviceName(deviceName)
+        val passphrase = WifiCredentialRules.generatePassphrase()
         val config = try {
             WifiP2pConfig.Builder().setNetworkName(ssid).setPassphrase(passphrase).build()
         } catch (error: Exception) {
@@ -42,7 +41,7 @@ class WifiDirectGroup(private val context: Context) {
                     manager.requestGroupInfo(channel) { group: WifiP2pGroup? ->
                         val actual = group?.networkName.orEmpty()
                         val actualPassword = group?.passphrase.orEmpty()
-                        if (actual.startsWith("DIRECT-WHIP-") && actualPassword.isNotBlank()) {
+                        if (actual == ssid && WifiCredentialRules.isValidPassphrase(actualPassword)) {
                             val result = Credentials(actual, actualPassword)
                             credentials = result
                             onReady(result)
@@ -77,23 +76,4 @@ class WifiDirectGroup(private val context: Context) {
 
     fun currentCredentials(): Credentials? = credentials
 
-    private fun generatePassphrase(): String {
-        val upper = "ABCDEFGHJKLMNPQRSTUVWXYZ"
-        val lower = "abcdefghijkmnopqrstuvwxyz"
-        val digits = "23456789"
-        val special = "!@#$%^&*"
-        val random = SecureRandom()
-        val chars = mutableListOf<Char>()
-        repeat(5) { chars += upper[random.nextInt(upper.length)] }
-        repeat(5) { chars += lower[random.nextInt(lower.length)] }
-        repeat(5) { chars += digits[random.nextInt(digits.length)] }
-        repeat(5) { chars += special[random.nextInt(special.length)] }
-        for (i in chars.lastIndex downTo 1) {
-            val j = random.nextInt(i + 1)
-            val temp = chars[i]
-            chars[i] = chars[j]
-            chars[j] = temp
-        }
-        return chars.joinToString("")
-    }
 }
