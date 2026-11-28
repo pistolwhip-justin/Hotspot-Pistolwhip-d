@@ -27,8 +27,8 @@ The SSID must retain the required `DIRECT-WH` prefix. The phone-name portion is 
 3. Create a Wi-Fi Direct group with the required SSID and generated passphrase. Do not invoke conventional Android hotspot/tethering APIs.
 4. Start the SOCKS5 listener only after group creation succeeds. Bind/advertise the endpoint on the group-owner interface, and verify it is reachable from the P2P network.
 5. Expand Share only after the group and listener are established. On failure, show a truthful error and keep the section inactive.
-6. Display SSID, passphrase, group/interface details, connected-peer information where exposed by Android, and compact verbose-style radio/network statistics. Refresh visible values every five seconds and supplement with network callbacks.
-7. Show a Share action in the expanded section. It opens an overlay with a QR code and a communication/share action.
+6. Display SSID, passphrase and the P2P endpoint once Android has confirmed group and listener readiness.
+7. Show a Share action with QR, copy and Android Sharesheet. Detailed verbose-style radio/network statistics and five-second refresh are deferred to the diagnostics phase.
 
 ## Sharing destinations
 
@@ -38,14 +38,12 @@ The QR payload must use the standard Wi-Fi QR format with WPA/WPA2-compatible cr
 
 ## Receive behavior
 
-1. When Receive is enabled, request Wi-Fi enablement through the device's available app permission/capability; if unavailable, use the appropriate Android system handoff.
-2. Wait ten seconds after the Wi-Fi enablement step.
-3. Read the currently connected Wi-Fi SSID.
-4. If the SSID begins `DIRECT-WHIP-`, treat it as a candidate group and validate the active Wi-Fi network/interface and SOCKS endpoint before VPN startup.
-5. If there is no connection or the SSID does not match, offer QR scanning or manual network-information entry.
-6. Pass the selected network credentials and user action to Android's Wi-Fi connection flow. Android owns actual association and saved-network behavior. Do not enumerate the complete saved-network list or silently select credentials from it.
-7. Start the receiver VPN only after Android reports association with the expected group and the endpoint is reachable. The VPN must be authorized and established before the tunnel is reported active.
-8. The receiver VPN must not be started while the user is still entering or selecting Wi-Fi credentials.
+1. If Wi-Fi is disabled, provide an Android Wi-Fi settings handoff; do not claim that the app can silently enable Wi-Fi on modern Android.
+2. Read the currently connected Wi-Fi SSID and validate the `DIRECT-WHIP-` prefix when a network is already connected.
+3. If there is no matching connection, offer QR scanning or manual SSID/password entry.
+4. Pass the selected credentials to Android through the supported `WifiNetworkSpecifier` connection request. Android owns the system approval and association. Do not enumerate the complete saved-network list or silently select credentials from it.
+5. Start the receiver VPN only after Android reports association with the expected group and the endpoint is reachable. The VPN must be authorized and established before the tunnel is reported active.
+6. The receiver VPN must not be started while the user is still entering or selecting Wi-Fi credentials.
 
 A saved group may be rejoined automatically by Android itself. The app should observe and validate that connection rather than reimplement Android's saved-network selection.
 
@@ -71,10 +69,9 @@ Where the platform supports user-approved temporary or saved configuration, pres
 
 ## Recovery and privacy
 
-- Unexpected Share service failure: make up to three best-effort restart attempts, ten seconds apart, when Android permits; then offer the user a log-sharing dialog.
-- Log sharing requires explicit user selection. Redact passwords, SSIDs where identifying, device identifiers, phone numbers, and other secrets before presenting logs.
-- Actions: Cancel; Share & Discard; Share & Save. Android Sharesheet is used for sharing and the system document picker for saving.
-- Force-stop, OEM process management, and Android background-start restrictions can prevent automatic restarts or dialogs. The app must describe recovery as best-effort.
+- Three best-effort restart attempts and consent-based diagnostic log sharing are deferred to the diagnostics/resilience phase.
+- When log sharing is implemented, redact passwords, identifying SSIDs, device identifiers, phone numbers and other secrets; provide Cancel, Share & Discard, and Share & Save.
+- Force-stop, OEM process management and Android background-start restrictions can prevent automatic restarts or dialogs.
 - Never automatically upload logs or connection credentials.
 
 ## UI
@@ -82,7 +79,7 @@ Where the platform supports user-approved temporary or saved configuration, pres
 - Preserve true-black AMOLED styling, system typography/scaling, dynamic accents, compact spacing and independent Share/Receive controls.
 - Share is collapsed when inactive and expands automatically after successful group creation.
 - Receive is collapsed when inactive and expands when the expected network is connected and the tunnel is being established/active.
-- Share network data should use a compact verbose diagnostic layout modeled on the user's supplied Android Wi-Fi verbose-information screenshot.
+- Phase 1/2 Share shows credentials and confirmed P2P endpoint details. The compact verbose diagnostic layout modeled on the supplied Wi-Fi information screenshot is deferred.
 - Do not display instructional filler inside the active Share panel.
 
 ## Explicit exclusions
