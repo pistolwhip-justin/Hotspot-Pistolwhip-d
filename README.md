@@ -1,6 +1,6 @@
 # 📡 Hotspot Pistolwhip'd
 
-![Android](https://img.shields.io/badge/platform-Android-3DDC84?logo=android&logoColor=white) ![Status](https://img.shields.io/badge/status-Phase%201%20%26%202%20CI%20validated-orange)
+![Android](https://img.shields.io/badge/platform-Android-3DDC84?logo=android&logoColor=white) ![Status](https://img.shields.io/badge/status-Phase%201%20%26%202%20test%20APK%20published-orange)
 
 A standalone Android app from Pistol Whip Productions for sharing one phone's internet connection with nearby phones over a direct Wi-Fi Direct group—without using Android's conventional Hotspot/tethering transport.
 
